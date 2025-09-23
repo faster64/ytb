@@ -7,9 +7,15 @@ using Ytb.Services;
 StartupService.Initialize();
 
 var options = Enum.GetValues<OptionEnum>().ToList();
+var videoService = new VideoService();
+// await videoService.CutVideoAsync(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(20));
+await videoService.RemoveBackgroundAsync();
+
+return;
 var choice = SelectOption();
 
 Console.Clear();
+
 switch (choice)
 {
     case OptionEnum.UpdateAPIKey:
@@ -39,12 +45,12 @@ switch (choice)
         break;
 
     case OptionEnum.AddPrefixToVideo:
-        AddPrefix();
+        VideoService.AddPrefix();
         Console.WriteLine("Thêm STT thành công");
         break;
 
     case OptionEnum.RemovePrefixToVideo:
-        RemovePrefix();
+        VideoService.RemovePrefix();
         Console.WriteLine("Xóa STT thành công");
         break;
 }
@@ -124,41 +130,3 @@ async Task GetVideoUrlsFromChannelAsync()
     }
 }
 
-void AddPrefix()
-{
-    var mp4Files = Directory.EnumerateFiles(PathManager.DownloadOutputPath, "*.mp4").ToList();
-
-    int counter = 1;
-    foreach (var file in mp4Files)
-    {
-        var dir = Path.GetDirectoryName(file)!;
-        var fileName = Path.GetFileName(file);
-
-        if (Regex.IsMatch(fileName, @"^NUM\d+_"))
-            continue;
-
-        var newName = $"NUM{counter}_{fileName}";
-        var newPath = Path.Combine(dir, newName);
-
-        File.Move(file, newPath);
-        counter++;
-    }
-}
-
-void RemovePrefix()
-{
-    var mp4Files = Directory.EnumerateFiles(PathManager.DownloadOutputPath, "*.mp4").ToList();
-
-    foreach (var file in mp4Files)
-    {
-        var dir = Path.GetDirectoryName(file)!;
-        var fileName = Path.GetFileName(file);
-
-        var newName = Regex.Replace(fileName, @"^NUM\d+_", "");
-        if (newName != fileName)
-        {
-            var newPath = Path.Combine(dir, newName);
-            File.Move(file, newPath);
-        }
-    }
-}
