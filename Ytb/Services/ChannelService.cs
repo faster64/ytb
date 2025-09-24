@@ -70,7 +70,7 @@ namespace Ytb.Services
                     {
                         // parse duration dạng PT#M#S
                         var duration = System.Xml.XmlConvert.ToTimeSpan(video.ContentDetails.Duration);
-                        if (duration.TotalSeconds <= 60)
+                        if (duration.TotalSeconds <= 600)
                         {
                             // Bỏ short
                             continue;

@@ -7,24 +7,6 @@ namespace Ytb.Services
     {
         private string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
 
-        public async Task OverlayImageAsync()
-        {
-            var inputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
-            var outputVideo = Path.Combine(PathManager.OutputsPath, "output_with_new_bg.mp4");
-            var overlayImage = "D:\\12.jpg";
-
-            if (File.Exists(outputVideo))
-            {
-                File.Delete(outputVideo);
-            }
-
-            var arguments =
-                $"-i \"{inputVideo}\" -i \"{overlayImage}\" " +
-                "-filter_complex \"[1:v][0:v]scale2ref=iw:ih[img][vid];[vid][img]overlay=0:0\" " +
-                "-c:v libx264 -c:a copy -y \"" + outputVideo + "\"";
-            await RunProcessAsync(arguments);
-        }
-
         public async Task ReplaceBackgroundAsync()
         {
             var inputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
@@ -67,11 +49,46 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
+        public async Task OverlayTextOnBackgroundAsync()
+        {
+            var inputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
+            var outputVideo = Path.Combine(PathManager.OutputsPath, "output.mp4");
+            var backgroundImage = "D:\\Youtube\\resources\\audio\\backgrounds\\12.jpg";
+
+            if (File.Exists(outputVideo))
+            {
+                File.Delete(outputVideo);
+            }
+
+            // B1: Crop vùng chữ (x, y, width, height bạn cần chỉnh theo video)
+            string croppedText = "cropped_text.mp4";
+            string cropArgs = $"-i \"{inputVideo}\" -filter:v \"scale=1280:720,crop=in_w:190:0:800\" -c:v libx264 -crf 18 -preset veryfast \"{croppedText}\"";
+            await RunProcessAsync(cropArgs);
+
+            // B2: Biến nền tối thành trong suốt (alpha)
+            string overlayAlpha = "overlay_alpha.webm";
+            string alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 \"{overlayAlpha}\"";
+            await RunProcessAsync(alphaArgs);
+
+            // B3: Overlay chữ lên background
+            string finalArgs = $"-loop 1 -i \"{backgroundImage}\" -i \"{overlayAlpha}\" -filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" -c:v libx264 -crf 18 -preset veryfast -shortest \"{outputVideo}\"";
+            await RunProcessAsync(finalArgs);
+
+            // Xoá file tạm
+            File.Delete(croppedText);
+            File.Delete(overlayAlpha);
+        }
+
         public async Task CutVideoAsync(TimeSpan startTime, TimeSpan duration)
         {
             var inputVideo = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").FirstOrDefault();
-            var outputVideo = Path.Combine(PathManager.OutputsPath, "cutted.mp4");
+            var outputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
             var arguments = $"-ss {ToFfmpegTime(startTime)} -t {ToFfmpegTime(duration)} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";
+
+            if (File.Exists(outputVideo))
+            {
+                File.Delete(outputVideo);
+            }
 
             await RunProcessAsync(arguments);
         }

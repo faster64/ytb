@@ -7,9 +7,10 @@ StartupService.Initialize();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int) x).ToList();
 var videoService = new VideoService();
-// await videoService.CutVideoAsync(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(20));
-// await videoService.OverlayImageAsync();
+// await videoService.CutVideoAsync(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(10));
+await videoService.OverlayTextOnBackgroundAsync();
 
+return;
 var choice = SelectOption();
 
 Console.Clear();
