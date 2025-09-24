@@ -1,6 +1,4 @@
-﻿using System;
-using System.Diagnostics;
-using System.Net.Http;
+﻿using System.Diagnostics;
 
 namespace Ytb.Services
 {
@@ -8,7 +6,7 @@ namespace Ytb.Services
     {
         public async Task DownloadVideosAsync()
         {
-            var urls = await File.ReadAllLinesAsync(PathManager.DownloadFileUrlInputPath);
+            var urls = await File.ReadAllLinesAsync(PathManager.InputFileDownloadPath);
             if (urls.Length == 0)
             {
                 Console.WriteLine("Không tìm thấy urls trong file.");
@@ -18,7 +16,7 @@ namespace Ytb.Services
             var sw = Stopwatch.StartNew();
             Console.WriteLine("download process has been started...");
 
-            var outputDir = PathManager.DownloadOutputPath;
+            var outputDir = PathManager.InputOriginVideoPath;
             if (Directory.Exists(outputDir))
             {
                 Console.WriteLine("Xóa thư mục output cũ...");

@@ -1,37 +1,37 @@
-﻿using System.Text.RegularExpressions;
-using Ytb;
+﻿using Ytb;
 using Ytb.Enums;
 using Ytb.Extensions;
 using Ytb.Services;
 
 StartupService.Initialize();
 
-var options = Enum.GetValues<OptionEnum>().ToList();
+var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int) x).ToList();
 var videoService = new VideoService();
 // await videoService.CutVideoAsync(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(20));
-await videoService.RemoveBackgroundAsync();
+// await videoService.OverlayImageAsync();
 
-return;
 var choice = SelectOption();
 
 Console.Clear();
-
 switch (choice)
 {
     case OptionEnum.UpdateAPIKey:
-        if (!File.Exists(PathManager.ResourcesFileApiKeyPath))
+        if (!File.Exists(PathManager.ConfigFileApiKeyPath))
         {
-            File.Create(PathManager.ResourcesFileApiKeyPath).Close();
+            File.Create(PathManager.ConfigFileApiKeyPath).Close();
         }
 
-        var apiKey = "";
-        while (string.IsNullOrEmpty(apiKey))
+        var currentApiKey = ChannelService.GetApiKeyAllowEmpty();
+        var newApiKey = "";
+
+        Console.WriteLine("API Key hiện tại: " + (string.IsNullOrEmpty(currentApiKey) ? "Chưa có" : currentApiKey));
+        while (string.IsNullOrWhiteSpace(newApiKey))
         {
             Console.Write("Nhập API Key mới: ");
-            apiKey = Console.ReadLine() ?? "";
+            newApiKey = Console.ReadLine() ?? "";
         }
 
-        await File.WriteAllTextAsync(PathManager.ResourcesFileApiKeyPath, apiKey);
+        await File.WriteAllTextAsync(PathManager.ConfigFileApiKeyPath, newApiKey.Trim());
         Console.WriteLine("Cập nhật API Key thành công.");
         break;
 
@@ -56,6 +56,9 @@ switch (choice)
 }
 
 
+Console.WriteLine();
+Console.WriteLine();
+Console.WriteLine("Press any key to close this console!");
 Console.ReadKey();
 
 OptionEnum SelectOption()
@@ -70,11 +73,11 @@ OptionEnum SelectOption()
 
     Console.Write("Nhập lựa chọn: ");
     var result = Console.ReadLine();
-    var validChoice = int.TryParse(result, out var choice) && choice > 0 && choice <= options.Count; ;
+    var validChoice = int.TryParse(result, out var choice) && options.Exists(x => (int)x == choice);
 
     while (!validChoice)
     {
-        validChoice = int.TryParse(result, out choice) && choice > 0 && choice <= options.Count;
+        validChoice = int.TryParse(result, out choice) && options.Exists(x => (int)x == choice);
         if (!validChoice)
         {
             Console.Write("Lựa chọn không hợp lệ, chọn lại nào: ");

@@ -28,18 +28,19 @@ namespace Ytb.Services
 
             var folderPaths = new List<string>
             {
-                PathManager.ResourcesPath,
+                PathManager.ConfigPath,
                 PathManager.ChannelsPath,
-                PathManager.DownloadsPath,
-                PathManager.DownloadInputPath,
-                PathManager.DownloadOutputPath
+                PathManager.InputPath,
+                PathManager.InputOriginVideoPath,
+                PathManager.InputBackgroundPath,
+                PathManager.OutputsPath,
             };
 
             var filePaths = new List<string>
             {
-                PathManager.ResourcesFileApiKeyPath,
+                PathManager.ConfigFileApiKeyPath,
                 PathManager.ChannelsFileHandlePath,
-                PathManager.DownloadFileUrlInputPath
+                PathManager.InputFileDownloadPath
             };
 
             foreach (var path in folderPaths)

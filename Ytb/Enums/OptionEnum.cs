@@ -5,18 +5,18 @@ namespace Ytb.Enums
     public enum OptionEnum
     {
         [Description("Cập nhật API Key")]
-        UpdateAPIKey = 1,
+        UpdateAPIKey = 10,
 
         [Description("Lấy danh sách video urls từ channel")]
-        GetVideoUrlsFromChannel = 2,
+        GetVideoUrlsFromChannel = 1,
 
         [Description("Tải video")]
-        DownloadVideo = 3,
+        DownloadVideo = 2,
 
         [Description("Thêm STT vào tên video")]
-        AddPrefixToVideo = 4,
+        AddPrefixToVideo = 3,
 
         [Description("Xóa STT trong tên video")]
-        RemovePrefixToVideo = 5,
+        RemovePrefixToVideo = 4,
     }
 }
