@@ -16,7 +16,7 @@ namespace Ytb.Services
                 ApplicationName = "Ytb"
             });
 
-            // B1: lấy channelId từ handle
+            // Lấy channelId từ handle
             var channelsRequest = youtubeService.Channels.List("id,contentDetails");
             channelsRequest.ForHandle = handle;
             var channelsResponse = await channelsRequest.ExecuteAsync();
@@ -28,40 +28,22 @@ namespace Ytb.Services
             }
 
             var channel = channelsResponse.Items[0];
-            var channelId = channel.Id;
             var uploadsPlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
 
-            Console.WriteLine($"Channel ID: {channelId}");
             Console.WriteLine($"Uploads Playlist ID: {uploadsPlaylistId}");
             Console.WriteLine("Đang lấy urls...");
 
-            // B2: duyệt qua playlist uploads để lấy tất cả video
-            var nextPageToken = "";
             var directoryPath = Path.Combine(PathManager.ChannelsPath, handle.TrimStart('@'));
             if (!Directory.Exists(directoryPath))
-            {
                 Directory.CreateDirectory(directoryPath);
-            }
 
             var filePath = Path.Combine(directoryPath, "only_video_urls.txt");
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-            else
-            {
-                File.Create(filePath).Close();
-            }
+            if (File.Exists(filePath)) File.Delete(filePath);
 
             var filePath2 = Path.Combine(directoryPath, "video_infos.txt");
-            if (File.Exists(filePath2))
-            {
-                File.Delete(filePath2);
-            }
-            else
-            {
-                File.Create(filePath2).Close();
-            }
+            if (File.Exists(filePath2)) File.Delete(filePath2);
+
+            string nextPageToken = null;
 
             do
             {
@@ -71,15 +53,37 @@ namespace Ytb.Services
                 playlistItemsRequest.PageToken = nextPageToken;
 
                 var playlistItemsResponse = await playlistItemsRequest.ExecuteAsync();
-                foreach (var item in playlistItemsResponse.Items)
+
+                // gom videoId lại để query 1 lần
+                var videoIds = playlistItemsResponse.Items
+                    .Select(i => i.Snippet.ResourceId.VideoId)
+                    .ToList();
+
+                if (videoIds.Count > 0)
                 {
-                    var vid = item.Snippet.ResourceId.VideoId;
-                    var videoUrl = $"https://www.youtube.com/watch?v={vid}";
+                    var videosRequest = youtubeService.Videos.List("contentDetails,snippet");
+                    videosRequest.Id = string.Join(",", videoIds);
 
-                    File.AppendAllText(filePath, videoUrl + Environment.NewLine);
-                    File.AppendAllText(filePath2, videoUrl + "\t" + item.Snippet.PublishedAtRaw + "\t" + item.Snippet.Title + Environment.NewLine);
+                    var videosResponse = await videosRequest.ExecuteAsync();
 
-                    Console.WriteLine(videoUrl);
+                    foreach (var video in videosResponse.Items)
+                    {
+                        // parse duration dạng PT#M#S
+                        var duration = System.Xml.XmlConvert.ToTimeSpan(video.ContentDetails.Duration);
+                        if (duration.TotalSeconds <= 60)
+                        {
+                            // Bỏ short
+                            continue;
+                        }
+
+                        var videoUrl = $"https://www.youtube.com/watch?v={video.Id}";
+                        File.AppendAllText(filePath, videoUrl + Environment.NewLine);
+
+                        File.AppendAllText(filePath2,
+                            $"{videoUrl}\t{duration}\t{video.Snippet.PublishedAtRaw}\t{video.Snippet.Title}{Environment.NewLine}");
+
+                        Console.WriteLine(videoUrl);
+                    }
                 }
 
                 nextPageToken = playlistItemsResponse.NextPageToken;
@@ -88,6 +92,7 @@ namespace Ytb.Services
 
             Console.WriteLine("\nHoàn thành!");
         }
+
 
         public static string GetApiKey()
         {
