@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using FFmpegArgs.Filters.VideoFilters;
+using System.Diagnostics;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Ytb.Services
@@ -52,33 +54,66 @@ namespace Ytb.Services
 
         public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundImagePath)
         {
-            if (File.Exists(outputVideo))
-            {
-                File.Delete(outputVideo);
-            }
-
-            // B1: Crop vùng chữ (scale về 1280x720 rồi crop lại vùng cần thiết)
-            var croppedText = "cropped_text.mp4";
-            var cropArgs = $"-i \"{inputVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset veryfast \"{croppedText}\"";
-            await RunProcessAsync(cropArgs);
-
-            // B2: Biến nền tối thành trong suốt (alpha)
+            var videoTitle = inputVideo.Split(Path.DirectorySeparatorChar).Last();
+            var croppedText = $"cropped_text_{videoTitle}";
             var overlayAlpha = "overlay_alpha.webm";
-            var alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 \"{overlayAlpha}\"";
-            await RunProcessAsync(alphaArgs);
+            var cuttedVideo = $"cutted_{videoTitle}";
 
-            // B3: Overlay chữ vào giữa background
-            var finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" -filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:450\" -c:v libx264 -crf 18 -preset veryfast -shortest \"{outputVideo}\"";
-            await RunProcessAsync(finalArgs);
+            if (File.Exists(outputVideo)) File.Delete(outputVideo);
+            if (File.Exists(croppedText)) File.Delete(croppedText);
+            if (File.Exists(overlayAlpha)) File.Delete(overlayAlpha);
+            if (File.Exists(cuttedVideo)) File.Delete(cuttedVideo);
 
-            // Xoá file tạm
-            File.Delete(croppedText);
-            File.Delete(overlayAlpha);
+            var hasNvidia = HasNvidiaGpu();
+
+            try
+            {
+                await CutVideoAsync(inputVideo, cuttedVideo, TimeSpan.FromSeconds(6), TimeSpan.Zero);
+                await Task.Delay(500);
+
+                // B1: Crop vùng chữ (scale về 1280x720 rồi crop lại vùng cần thiết)
+                var cropArgs = $"-i \"{cuttedVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset veryfast \"{croppedText}\"";
+                await RunProcessAsync(cropArgs);
+
+                // B2: Biến nền tối thành trong suốt (alpha)
+                var alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 \"{overlayAlpha}\"";
+                await RunProcessAsync(alphaArgs);
+
+                // B3: Overlay chữ vào giữa background
+                var finalArgs = "";
+                if (hasNvidia)
+                {
+                    finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
+                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" " +
+                        "-c:v h264_nvenc -b:v 5M -preset fast -shortest " +
+                        $"\"{outputVideo}\"";
+                }
+                else
+                {
+                    finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
+                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" " +
+                        "-c:v libx264 -crf 18 -preset veryfast -shortest " +
+                        $"\"{outputVideo}\"";
+                }
+
+                await RunProcessAsync(finalArgs);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            finally
+            {
+                if (File.Exists(croppedText)) File.Delete(croppedText);
+                if (File.Exists(overlayAlpha)) File.Delete(overlayAlpha);
+                if (File.Exists(cuttedVideo)) File.Delete(cuttedVideo);
+            }
         }
 
         public async Task CutVideoAsync(string inputVideo, string outputVideo, TimeSpan startTime, TimeSpan duration)
         {
-            var arguments = $"-ss {ToFfmpegTime(startTime)} -t {ToFfmpegTime(duration)} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";
+            var durationArg = duration > TimeSpan.Zero ? $"-t {ToFfmpegTime(duration)}" : "";
+            var arguments = $"-ss {ToFfmpegTime(startTime)} {durationArg} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";
 
             if (File.Exists(outputVideo))
             {
@@ -187,5 +222,31 @@ namespace Ytb.Services
             }
         }
 
+        public bool HasNvidiaGpu()
+        {
+            try
+            {
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "nvidia-smi",
+                        Arguments = "-L",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                string output = process.StandardOutput.ReadToEnd();
+                process.WaitForExit();
+
+                return !string.IsNullOrWhiteSpace(output) && output.Contains("GPU");
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

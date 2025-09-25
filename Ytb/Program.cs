@@ -1,4 +1,5 @@
 ﻿using FFmpegArgs.Cores.Enums;
+using System.Diagnostics;
 using Ytb;
 using Ytb.Enums;
 using Ytb.Extensions;
@@ -7,15 +8,9 @@ using Ytb.Services;
 StartupService.Initialize();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
-//var choice = SelectOption();
-var choice = OptionEnum.RenderAudioVideos;
+var choice = SelectOption();
+//var choice = OptionEnum.RenderAudioVideos;
 
-// await new VideoService().CutVideoAsync(Path.Combine(PathManager.InputOriginVideoPath, "69歳男性、築40年1Kボロアパートの無職が3000万円超えフェラーリに乗れたワケと最後の選択とは.mp4"), Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4"), TimeSpan.FromSeconds(6), TimeSpan.FromSeconds(15));
-
-await new VideoService().OverlayTextOnBackgroundAsync(Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4"), Path.Combine(PathManager.OutputsPath, "c.mp4"), Path.Combine(PathManager.InputBackgroundPath, "22.jpg"));
-
-Console.Clear();
-return;
 switch (choice)
 {
     case OptionEnum.UpdateAPIKey:
@@ -137,6 +132,8 @@ async Task GetVideoUrlsFromChannelAsync()
 
 async Task RenderAudioVideosAsync()
 {
+    var sw = Stopwatch.StartNew();
+
     var config = new ConfigService().GetConfig().AudioConfig;
     var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).ToList();
     var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
@@ -173,6 +170,10 @@ async Task RenderAudioVideosAsync()
         var folder = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
         var folderPath = Path.Combine(PathManager.OutputsPath, folder);
 
+        if (Directory.Exists(folderPath))
+        {
+            Directory.Delete(folderPath, recursive: true);
+        }
         Directory.CreateDirectory(folderPath);
 
         var videoPaths = originVideos.Take(config.NumberOfVideosPerChannelDaily).Skip(config.LastRenderIndex * config.NumberOfVideosPerChannelDaily).ToList();
@@ -197,12 +198,7 @@ async Task RenderAudioVideosAsync()
             var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last();
             var outputVideo = Path.Combine(PathManager.OutputsPath, folder, videoTitle);
 
-            tasks.Add(videoService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[i]));
-
-            if (tasks.Count % config.CCT == 0)
-            {
-                await Task.WhenAll(tasks);
-            }
+            await videoService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[i]);
         }
 
         if (tasks.Count > 0)
@@ -210,4 +206,7 @@ async Task RenderAudioVideosAsync()
             await Task.WhenAll(tasks);
         }
     }
+
+    sw.Stop();
+    Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
 }
