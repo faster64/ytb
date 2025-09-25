@@ -72,11 +72,11 @@ namespace Ytb.Services
                 await Task.Delay(500);
 
                 // B1: Crop vùng chữ (scale về 1280x720 rồi crop lại vùng cần thiết)
-                var cropArgs = $"-i \"{cuttedVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset veryfast \"{croppedText}\"";
+                var cropArgs = $"-i \"{cuttedVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
                 await RunProcessAsync(cropArgs);
 
                 // B2: Biến nền tối thành trong suốt (alpha)
-                var alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 \"{overlayAlpha}\"";
+                var alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
                 await RunProcessAsync(alphaArgs);
 
                 // B3: Overlay chữ vào giữa background
@@ -92,7 +92,7 @@ namespace Ytb.Services
                 {
                     finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
                         "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" " +
-                        "-c:v libx264 -crf 18 -preset veryfast -shortest " +
+                        "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
                         $"\"{outputVideo}\"";
                 }
 
