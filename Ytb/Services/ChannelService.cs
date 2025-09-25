@@ -9,7 +9,8 @@ namespace Ytb.Services
         {
             handle = handle.Trim();
 
-            var apiKey = GetApiKey();
+            var configService = new ConfigService();
+            var apiKey = configService.GetApiKey();
             var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
                 ApiKey = apiKey,
@@ -91,37 +92,6 @@ namespace Ytb.Services
             while (nextPageToken != null);
 
             Console.WriteLine("\nHoàn thành!");
-        }
-
-
-        public static string GetApiKey()
-        {
-            var path = PathManager.ConfigFileApiKeyPath;
-            if (File.Exists(path))
-            {
-                var key = File.ReadAllText(path);
-                if (!string.IsNullOrEmpty(key))
-                {
-                    return key.Trim();
-                }
-                throw new Exception("File api_key.txt rỗng. Vui lòng cập nhật API Key.");
-            }
-            throw new FileNotFoundException("Không tìm thấy file api_key.txt");
-        }
-
-        public static string GetApiKeyAllowEmpty()
-        {
-            var path = PathManager.ConfigFileApiKeyPath;
-            if (File.Exists(path))
-            {
-                var key = File.ReadAllText(path);
-                if (!string.IsNullOrEmpty(key))
-                {
-                    return key.Trim();
-                }
-                return "";
-            }
-            return "";
         }
     }
 }

@@ -18,5 +18,11 @@ namespace Ytb.Enums
 
         [Description("Xóa STT trong tên video")]
         RemovePrefixToVideo = 4,
+
+        [Description("Render audio videos")]
+        RenderAudioVideos = 5,
+
+        [Description("Render LINE videos")]
+        RenderLineVideos = 6,
     }
 }

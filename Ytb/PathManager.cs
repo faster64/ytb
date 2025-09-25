@@ -3,7 +3,7 @@
     public class PathManager
     {
         public static string ConfigPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "configs");
-        public static string ConfigFileApiKeyPath => Path.Combine(ConfigPath, "api_key.txt");
+        public static string ConfigFilePath => Path.Combine(ConfigPath, "config.txt");
 
         public static string ChannelsPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "channels");
         public static string ChannelsFileHandlePath => Path.Combine(ChannelsPath, "channel_handle.txt");

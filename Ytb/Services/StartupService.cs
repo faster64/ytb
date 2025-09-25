@@ -1,5 +1,7 @@
-﻿using System.Reflection;
+﻿using Newtonsoft.Json;
+using System.Reflection;
 using System.Text;
+using Ytb.Models;
 
 namespace Ytb.Services
 {
@@ -29,6 +31,7 @@ namespace Ytb.Services
             var folderPaths = new List<string>
             {
                 PathManager.ConfigPath,
+                PathManager.ConfigPath,
                 PathManager.ChannelsPath,
                 PathManager.InputPath,
                 PathManager.InputOriginVideoPath,
@@ -38,7 +41,7 @@ namespace Ytb.Services
 
             var filePaths = new List<string>
             {
-                PathManager.ConfigFileApiKeyPath,
+                PathManager.ConfigFilePath,
                 PathManager.ChannelsFileHandlePath,
                 PathManager.InputFileDownloadPath
             };
@@ -56,6 +59,29 @@ namespace Ytb.Services
                 if (!File.Exists(path))
                 {
                     File.Create(path).Close();
+
+                    if (path == PathManager.ConfigFilePath)
+                    {
+                        var config = new Config
+                        {
+                            ApiKey = "",
+                            AudioConfig = new RenderConfig
+                            {
+                                LastRenderIndex = 0,
+                                NumberOfChannels = 5,
+                                NumberOfVideosPerChannelDaily = 5,
+                                CCT = 2
+                            },
+                            LineConfig = new RenderConfig
+                            {
+                                LastRenderIndex = 0,
+                                NumberOfChannels = 5,
+                                NumberOfVideosPerChannelDaily = 5,
+                                CCT = 2
+                            }
+                        };
+                        File.WriteAllText(path, JsonConvert.SerializeObject(config, Formatting.Indented));
+                    }
                 }
             }
         }

@@ -1,38 +1,32 @@
-﻿using Ytb;
+﻿using FFmpegArgs.Cores.Enums;
+using Ytb;
 using Ytb.Enums;
 using Ytb.Extensions;
 using Ytb.Services;
 
 StartupService.Initialize();
 
-var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int) x).ToList();
-var videoService = new VideoService();
-// await videoService.CutVideoAsync(TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(10));
-await videoService.OverlayTextOnBackgroundAsync();
+var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
+//var choice = SelectOption();
+var choice = OptionEnum.RenderAudioVideos;
 
-return;
-var choice = SelectOption();
+// await new VideoService().CutVideoAsync(Path.Combine(PathManager.InputOriginVideoPath, "69歳男性、築40年1Kボロアパートの無職が3000万円超えフェラーリに乗れたワケと最後の選択とは.mp4"), Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4"), TimeSpan.FromSeconds(6), TimeSpan.FromSeconds(15));
+
+await new VideoService().OverlayTextOnBackgroundAsync(Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4"), Path.Combine(PathManager.OutputsPath, "c.mp4"), Path.Combine(PathManager.InputBackgroundPath, "22.jpg"));
 
 Console.Clear();
+return;
 switch (choice)
 {
     case OptionEnum.UpdateAPIKey:
-        if (!File.Exists(PathManager.ConfigFileApiKeyPath))
-        {
-            File.Create(PathManager.ConfigFileApiKeyPath).Close();
-        }
-
-        var currentApiKey = ChannelService.GetApiKeyAllowEmpty();
-        var newApiKey = "";
-
-        Console.WriteLine("API Key hiện tại: " + (string.IsNullOrEmpty(currentApiKey) ? "Chưa có" : currentApiKey));
-        while (string.IsNullOrWhiteSpace(newApiKey))
+        var apiKey = "";
+        while (string.IsNullOrWhiteSpace(apiKey))
         {
             Console.Write("Nhập API Key mới: ");
-            newApiKey = Console.ReadLine() ?? "";
+            apiKey = Console.ReadLine() ?? "";
         }
+        new ConfigService().SetApiKey(apiKey);
 
-        await File.WriteAllTextAsync(PathManager.ConfigFileApiKeyPath, newApiKey.Trim());
         Console.WriteLine("Cập nhật API Key thành công.");
         break;
 
@@ -46,13 +40,20 @@ switch (choice)
         break;
 
     case OptionEnum.AddPrefixToVideo:
-        VideoService.AddPrefix();
+        new VideoService().AddPrefix();
         Console.WriteLine("Thêm STT thành công");
         break;
 
     case OptionEnum.RemovePrefixToVideo:
-        VideoService.RemovePrefix();
+        new VideoService().RemovePrefix();
         Console.WriteLine("Xóa STT thành công");
+        break;
+
+    case OptionEnum.RenderAudioVideos:
+        await RenderAudioVideosAsync();
+        break;
+
+    case OptionEnum.RenderLineVideos:
         break;
 }
 
@@ -134,3 +135,79 @@ async Task GetVideoUrlsFromChannelAsync()
     }
 }
 
+async Task RenderAudioVideosAsync()
+{
+    var config = new ConfigService().GetConfig().AudioConfig;
+    var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).ToList();
+    var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
+    var requiredVideoCount = config.NumberOfChannels * config.NumberOfVideosPerChannelDaily;
+
+    if (originVideos.Count < requiredVideoCount)
+    {
+        Console.WriteLine($"Số video không đủ để render. Cần {requiredVideoCount} videos");
+        return;
+    }
+
+    if (backgroundFolders.Count < config.NumberOfChannels)
+    {
+        Console.WriteLine($"{PathManager.InputBackgroundPath} không đủ {config.NumberOfChannels} thư mục background.");
+        return;
+    }
+
+    foreach (var bgFolder in backgroundFolders)
+    {
+        var bgFiles = Directory.EnumerateFiles(bgFolder, "*.jpg").ToList();
+        if (bgFiles.Count < config.NumberOfVideosPerChannelDaily)
+        {
+            Console.WriteLine($"Thư mục {bgFolder} không có đủ {config.NumberOfVideosPerChannelDaily} ảnh nền.");
+            return;
+        }
+    }
+
+    var currentIndex = config.LastRenderIndex + 1;
+    var videoService = new VideoService();
+    var random = new Random();
+
+    foreach (var backgroundFolder in backgroundFolders)
+    {
+        var folder = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
+        var folderPath = Path.Combine(PathManager.OutputsPath, folder);
+
+        Directory.CreateDirectory(folderPath);
+
+        var videoPaths = originVideos.Take(config.NumberOfVideosPerChannelDaily).Skip(config.LastRenderIndex * config.NumberOfVideosPerChannelDaily).ToList();
+        var backgroundPaths = Directory.EnumerateFiles(backgroundFolder, "*.jpg").ToList();
+        var tasks = new List<Task>();
+
+        var selectedBackgroundPaths = new List<string>();
+        while (selectedBackgroundPaths.Count < config.NumberOfVideosPerChannelDaily)
+        {
+            var randomNumber = random.Next(0, backgroundPaths.Count - 1);
+            while (selectedBackgroundPaths.Contains(backgroundPaths[randomNumber]))
+            {
+                randomNumber = random.Next(0, backgroundPaths.Count - 1);
+            }
+
+            selectedBackgroundPaths.Add(backgroundPaths[randomNumber]);
+        }
+
+        for (int i = 0; i < videoPaths.Count; i++)
+        {
+            var videoPath = videoPaths[i];
+            var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last();
+            var outputVideo = Path.Combine(PathManager.OutputsPath, folder, videoTitle);
+
+            tasks.Add(videoService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[i]));
+
+            if (tasks.Count % config.CCT == 0)
+            {
+                await Task.WhenAll(tasks);
+            }
+        }
+
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks);
+        }
+    }
+}
