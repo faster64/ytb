@@ -8,8 +8,8 @@ using Ytb.Services;
 StartupService.Initialize();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
-//var choice = SelectOption();
-var choice = OptionEnum.RenderAudioVideos;
+var choice = SelectOption();
+//var choice = OptionEnum.RenderAudioVideos;
 
 switch (choice)
 {

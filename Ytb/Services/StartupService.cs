@@ -70,14 +70,14 @@ namespace Ytb.Services
                                 LastRenderIndex = 0,
                                 NumberOfChannels = 5,
                                 NumberOfVideosPerChannelDaily = 5,
-                                CCT = 2
+                                CCT = 1
                             },
                             LineConfig = new RenderConfig
                             {
                                 LastRenderIndex = 0,
                                 NumberOfChannels = 5,
                                 NumberOfVideosPerChannelDaily = 5,
-                                CCT = 2
+                                CCT = 1
                             }
                         };
                         File.WriteAllText(path, JsonConvert.SerializeObject(config, Formatting.Indented));

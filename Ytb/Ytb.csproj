@@ -24,4 +24,8 @@
 		<PackageReference Include="TqkLibrary.FFmpeg.Runtimes" Version="5.1.0" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Folder Include="IO\outputs\" />
+	</ItemGroup>
+
 </Project>
