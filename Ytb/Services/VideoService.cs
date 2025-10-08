@@ -1,6 +1,4 @@
-﻿using FFmpegArgs.Filters.VideoFilters;
-using System.Diagnostics;
-using System.Text;
+﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Ytb.Services
@@ -149,9 +147,30 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
-        public void AddPrefix()
+        public async Task CreateVideoFromImage(string imagePath, string outputVideo, int fps = 1, int width = 1280, int height = 720)
         {
-            var mp4Files = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
+            var tmp = Path.Combine(Path.GetTempPath(), $"tmp_1s_{Guid.NewGuid():N}.mp4");
+            var args = $"-y -loop 1 -i \"{imagePath}\" -t 1 -vf \"scale={width}:{height},setsar=1\" -r {fps} -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \"{tmp}\"";
+            await RunProcessAsync(args);
+
+            var durationSeconds = 3600;
+            var arguments = $"-y -stream_loop -1 -i \"{tmp}\" -t {durationSeconds} -c copy -movflags +faststart \"{outputVideo}\"";
+
+            await RunProcessAsync(arguments);
+
+            if (File.Exists(tmp))
+            {
+                File.Delete(tmp);
+            }
+        }
+
+        public void AddPrefix(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = PathManager.InputOriginVideoPath;
+            }
+            var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             int counter = 1;
             foreach (var file in mp4Files)
@@ -170,9 +189,13 @@ namespace Ytb.Services
             }
         }
 
-        public void RemovePrefix()
+        public void RemovePrefix(string path)
         {
-            var mp4Files = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
+            if (string.IsNullOrEmpty(path))
+            {
+                path = PathManager.InputOriginVideoPath;
+            }
+            var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             foreach (var file in mp4Files)
             {
@@ -208,8 +231,8 @@ namespace Ytb.Services
                 }
             };
 
-            //process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data); };
-            //process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine("ERR: " + e.Data); };
+            process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data); };
+            process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine("ERR: " + e.Data); };
 
             process.Start();
             process.BeginOutputReadLine();

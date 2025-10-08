@@ -35,12 +35,18 @@ switch (choice)
         break;
 
     case OptionEnum.AddPrefixToVideo:
-        new VideoService().AddPrefix();
+        Console.Write("Nhập path: ");
+        var path = Console.ReadLine();
+
+        new VideoService().AddPrefix(path);
         Console.WriteLine("Thêm STT thành công");
         break;
 
     case OptionEnum.RemovePrefixToVideo:
-        new VideoService().RemovePrefix();
+        Console.Write("Nhập path: ");
+        var path2 = Console.ReadLine();
+
+        new VideoService().RemovePrefix(path2);
         Console.WriteLine("Xóa STT thành công");
         break;
 
@@ -49,6 +55,14 @@ switch (choice)
         break;
 
     case OptionEnum.RenderLineVideos:
+        break;
+
+    case OptionEnum.CreateVideoFromImage:
+        Console.Write("Nhập path: ");
+        var path3 = Console.ReadLine();
+
+        await CreateVideosFromImagesAsync(path3);
+        Console.WriteLine("Tao video thành công");
         break;
 }
 
@@ -209,4 +223,28 @@ async Task RenderAudioVideosAsync()
 
     sw.Stop();
     Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
+}
+
+async Task CreateVideosFromImagesAsync(string path)
+{
+    for (int i = 1; i <= 500; i++)
+    {
+        var folderPath = $"D:\\Zutube\\cut-video-3000\\backgrounds\\{i}";
+        if (!Directory.Exists(folderPath))
+        {
+            continue;
+        }
+
+        var sw = Stopwatch.StartNew();
+        var images = Directory.EnumerateFiles(folderPath, "*.jpg").ToList();
+
+        foreach (var imagePath in images)
+        {
+            Directory.CreateDirectory(folderPath);
+            await new VideoService().CreateVideoFromImage(imagePath, Path.Combine(folderPath, imagePath.Split(Path.DirectorySeparatorChar).Last().Replace(".jpg", ".mp4")));
+        }
+
+        sw.Stop();
+        Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
+    }
 }
