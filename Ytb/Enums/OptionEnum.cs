@@ -26,6 +26,9 @@ namespace Ytb.Enums
         RenderLineVideos = 6,
 
         [Description("Tạo video từ ảnh")]
-        CreateVideoFromImage = 7
+        CreateVideoFromImage = 7,
+
+        [Description("Cắt video audio")]
+        CutAudioVideo = 8
     }
 }

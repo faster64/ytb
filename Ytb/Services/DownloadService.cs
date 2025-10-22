@@ -38,7 +38,10 @@ namespace Ytb.Services
                     tasks.Add(Task.Run(async () =>
                     {
                         var processFileName = Path.Combine(Directory.GetCurrentDirectory(), "yt-dlp.exe");
-                        var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";
+                        var cookiePath = Path.Combine(Directory.GetCurrentDirectory(), "cookies.txt");
+
+                        var arguments = $"--cookies \"C:\\temp\\youtube_cookies.txt\" -f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg \"{url.Trim()}\"";
+                        // var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";
                         var process = new Process
                         {
                             StartInfo = new ProcessStartInfo

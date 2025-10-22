@@ -134,10 +134,10 @@ namespace Ytb.Services
             }
         }
 
-        public async Task CutVideoAsync(string inputVideo, string outputVideo, TimeSpan startTime, TimeSpan duration)
+        public async Task CutVideoAsync(string inputVideo, string outputVideo, TimeSpan from, TimeSpan duration)
         {
             var durationArg = duration > TimeSpan.Zero ? $"-t {ToFfmpegTime(duration)}" : "";
-            var arguments = $"-ss {ToFfmpegTime(startTime)} {durationArg} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";
+            var arguments = $"-ss {ToFfmpegTime(from)} {durationArg} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";
 
             if (File.Exists(outputVideo))
             {

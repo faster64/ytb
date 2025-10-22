@@ -62,7 +62,10 @@ switch (choice)
         var path3 = Console.ReadLine();
 
         await CreateVideosFromImagesAsync(path3);
-        Console.WriteLine("Tao video thành công");
+        break;
+
+    case OptionEnum.CutAudioVideo:
+        await CutVideoAudioAsync();
         break;
 }
 
@@ -247,4 +250,24 @@ async Task CreateVideosFromImagesAsync(string path)
         sw.Stop();
         Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
     }
+}
+
+async Task CutVideoAudioAsync()
+{
+    var folderPath = $"D:\\Zutube\\cut-video-3000\\overlays";
+    var sw = Stopwatch.StartNew();
+    var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
+
+    foreach (var videoPath in videos)
+    {
+        var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
+        var outputVideo = Path.Combine(folderPath, "cutted_" + videoTitle + ".mp4");
+        await new VideoService().CutVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(6), TimeSpan.Zero);
+
+        File.Delete(videoPath);
+        File.Move(outputVideo, videoPath);
+    }
+
+    sw.Stop();
+    Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
 }
