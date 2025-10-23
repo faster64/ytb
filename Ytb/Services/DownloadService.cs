@@ -14,7 +14,7 @@ namespace Ytb.Services
             }
 
             var sw = Stopwatch.StartNew();
-            Console.WriteLine("download process has been started...");
+            Console.WriteLine($"Bắt đầu tải {urls.Count()} videos...");
 
             var outputDir = PathManager.InputOriginVideoPath;
             if (Directory.Exists(outputDir))
@@ -53,7 +53,7 @@ namespace Ytb.Services
                                 RedirectStandardError = true,
                                 CreateNoWindow = true,
                                 StandardOutputEncoding = System.Text.Encoding.UTF8,
-                                
+
                             }
                         };
 

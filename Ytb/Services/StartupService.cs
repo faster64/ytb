@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.Diagnostics;
 using System.Reflection;
 using System.Text;
 using Ytb.Models;
@@ -7,7 +8,7 @@ namespace Ytb.Services
 {
     public class StartupService
     {
-        public static void Initialize()
+        public static async Task InitializeAsync()
         {
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
@@ -64,7 +65,8 @@ namespace Ytb.Services
                     {
                         var config = new Config
                         {
-                            ApiKey = "",
+                            ApiKey = "AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus",
+                            AutoGetNewYtDlp = true,
                             AudioConfig = new RenderConfig
                             {
                                 LastRenderIndex = 0,
@@ -85,9 +87,10 @@ namespace Ytb.Services
                 }
             }
 
-            new ConfigService().SetApiKey("AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus");
-
-            UpdateYtDlpAsync().GetAwaiter().GetResult();
+            if (new ConfigService().GetConfig().AutoGetNewYtDlp)
+            {
+                await UpdateYtDlpAsync();
+            }
         }
 
         private static async Task UpdateYtDlpAsync()
@@ -97,21 +100,27 @@ namespace Ytb.Services
 
             try
             {
+                var sw = Stopwatch.StartNew();
+
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Đang tải yt-dlp.exe mới nhất...");
+
+                using var httpClient = new HttpClient();
+                var bytes = await httpClient.GetByteArrayAsync(ytDlpUrl);
+
                 if (File.Exists(ytDlpFile))
                 {
                     Console.WriteLine("Đang xóa yt-dlp.exe cũ...");
                     File.Delete(ytDlpFile);
                 }
 
-                Console.WriteLine("Đang tải yt-dlp.exe mới nhất...");
-
-                using var httpClient = new HttpClient();
-                var bytes = await httpClient.GetByteArrayAsync(ytDlpUrl);
                 await File.WriteAllBytesAsync(ytDlpFile, bytes);
 
-                Console.WriteLine("Cập nhật yt-dlp.exe thành công!");
+                sw.Stop();
+                Console.WriteLine($"Cập nhật yt-dlp.exe thành công sau {sw.Elapsed.TotalSeconds:N0}s!");
                 Console.WriteLine();
                 Console.WriteLine();
+                Console.ResetColor();
             }
             catch (Exception ex)
             {

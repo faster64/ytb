@@ -55,27 +55,22 @@ namespace Ytb.Services
             var videoTitle = inputVideo.Split(Path.DirectorySeparatorChar).Last();
             var croppedText = $"cropped_text_{videoTitle}";
             var overlayAlpha = "overlay_alpha.webm";
-            var cuttedVideo = $"cutted_{videoTitle}";
 
             if (File.Exists(outputVideo)) File.Delete(outputVideo);
             if (File.Exists(croppedText)) File.Delete(croppedText);
             if (File.Exists(overlayAlpha)) File.Delete(overlayAlpha);
-            if (File.Exists(cuttedVideo)) File.Delete(cuttedVideo);
 
             var hasNvidia = HasNvidiaGpu();
 
             try
             {
-                await CutVideoAsync(inputVideo, cuttedVideo, TimeSpan.FromSeconds(6), TimeSpan.Zero);
-                await Task.Delay(500);
-
                 var cropArgs = "";
                 var alphaArgs = "";
                 var finalArgs = "";
-                if (hasNvidia && false)
+                if (hasNvidia)
                 {
-                    cropArgs = $"-hwaccel cuda -i \"{cuttedVideo}\" " +
-                        "-vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" " +
+                    cropArgs = $"-hwaccel cuda -i \"{inputVideo}\" " +
+                        "-vf \"scale=1280:720,crop=in_w:190:0:650,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" " +
                         "-c:v h264_nvenc -preset fast -b:v 5M " +
                         $"\"{croppedText}\"";
 
@@ -92,10 +87,10 @@ namespace Ytb.Services
                 }
                 else
                 {
-                    cropArgs = $"-i \"{cuttedVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:800,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
+                    cropArgs = $"-i \"{inputVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:650,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
                     alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
                     finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
-                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" " +
+                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:400\" " +
                         "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
                         $"\"{outputVideo}\"";
                 }
@@ -130,11 +125,11 @@ namespace Ytb.Services
             {
                 if (File.Exists(croppedText)) File.Delete(croppedText);
                 if (File.Exists(overlayAlpha)) File.Delete(overlayAlpha);
-                if (File.Exists(cuttedVideo)) File.Delete(cuttedVideo);
+                // if (File.Exists(cuttedVideo)) File.Delete(cuttedVideo);
             }
         }
 
-        public async Task CutVideoAsync(string inputVideo, string outputVideo, TimeSpan from, TimeSpan duration)
+        public async Task TrimVideoAsync(string inputVideo, string outputVideo, TimeSpan from, TimeSpan duration)
         {
             var durationArg = duration > TimeSpan.Zero ? $"-t {ToFfmpegTime(duration)}" : "";
             var arguments = $"-ss {ToFfmpegTime(from)} {durationArg} -i \"{inputVideo}\" -c copy \"{outputVideo}\"";

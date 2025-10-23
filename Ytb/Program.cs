@@ -5,7 +5,7 @@ using Ytb.Enums;
 using Ytb.Extensions;
 using Ytb.Services;
 
-StartupService.Initialize();
+await StartupService.InitializeAsync();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 var choice = SelectOption();
@@ -65,7 +65,7 @@ switch (choice)
         break;
 
     case OptionEnum.CutAudioVideo:
-        await CutVideoAudioAsync();
+        await TrimVideoAudioAsync();
         break;
 }
 
@@ -250,9 +250,9 @@ async Task CreateVideosFromImagesAsync(string path)
     }
 }
 
-async Task CutVideoAudioAsync()
+async Task TrimVideoAudioAsync()
 {
-    var folderPath = $"D:\\Zutube\\cut-video-3000\\overlays";
+    var folderPath = PathManager.InputOriginVideoPath;
     var sw = Stopwatch.StartNew();
     var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
 
@@ -260,12 +260,12 @@ async Task CutVideoAudioAsync()
     {
         var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
         var outputVideo = Path.Combine(folderPath, "cutted_" + videoTitle + ".mp4");
-        await new VideoService().CutVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(6), TimeSpan.Zero);
+        await new VideoService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(10));
 
         File.Delete(videoPath);
         File.Move(outputVideo, videoPath);
     }
 
     sw.Stop();
-    Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
+    Console.WriteLine($"Trim video processes have been took {sw.Elapsed.TotalSeconds}s.");
 }

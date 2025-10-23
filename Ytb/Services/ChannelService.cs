@@ -90,6 +90,7 @@ namespace Ytb.Services
                             PublishedAt: video.Snippet.PublishedAtRaw,
                             ViewCount: viewCount
                         ));
+
                     }
                 }
 
@@ -105,6 +106,8 @@ namespace Ytb.Services
 
             foreach (var video in sortedVideos)
             {
+                Console.WriteLine($"https://www.youtube.com/watch?v={video.Id} | {video.Duration} | Views: {video.ViewCount:N0}");
+
                 var url = $"https://www.youtube.com/watch?v={video.Id}";
                 File.AppendAllText(filePath, url + Environment.NewLine);
 
