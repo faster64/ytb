@@ -106,10 +106,12 @@ async Task GetVideoUrlsFromChannelAsync()
 {
     var channelService = new ChannelService();
     var channelHandle = "";
+    var path = PathManager.ChannelsFileHandlePath;
 
-    Console.WriteLine("Kênh có chứa ký tự ngoài English Alphabet và số không?");
-    Console.WriteLine("1. Có");
-    Console.WriteLine("2. Không");
+    Console.Clear();
+    Console.WriteLine($"Lấy channel handle trong {path}");
+    Console.WriteLine("1. Đồng ý");
+    Console.WriteLine("2. Không, tự nhập");
     Console.Write("Nhập lựa chọn: ");
 
     var specialCharChoice = Console.ReadLine();
@@ -117,10 +119,6 @@ async Task GetVideoUrlsFromChannelAsync()
     Console.Clear();
     if (specialCharChoice == "1")
     {
-        var path = PathManager.ChannelsFileHandlePath;
-        Console.WriteLine($"Hệ thống sẽ lấy channel handle trong {path}. Nhấn Enter để xác nhận?");
-        Console.ReadLine();
-
         if (!File.Exists(path))
         {
             Console.WriteLine($"Không tìm thấy file {path}");

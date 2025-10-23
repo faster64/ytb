@@ -11,6 +11,12 @@ namespace Ytb.Services
 
             var configService = new ConfigService();
             var apiKey = configService.GetApiKey();
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                Console.WriteLine("Chưa có api key. Vui lòng cấu hình trong file config.txt");
+                return;
+            }
+
             var youtubeService = new YouTubeService(new BaseClientService.Initializer()
             {
                 ApiKey = apiKey,
@@ -32,7 +38,7 @@ namespace Ytb.Services
             var uploadsPlaylistId = channel.ContentDetails.RelatedPlaylists.Uploads;
 
             Console.WriteLine($"Uploads Playlist ID: {uploadsPlaylistId}");
-            Console.WriteLine("Đang lấy urls...");
+            Console.WriteLine("Đang lấy danh sách video...");
 
             var directoryPath = Path.Combine(PathManager.ChannelsPath, handle.TrimStart('@'));
             if (!Directory.Exists(directoryPath))
@@ -45,6 +51,7 @@ namespace Ytb.Services
             if (File.Exists(filePath2)) File.Delete(filePath2);
 
             string nextPageToken = null;
+            var allVideos = new List<(string Id, string Title, TimeSpan Duration, string PublishedAt, ulong ViewCount)>();
 
             do
             {
@@ -55,41 +62,55 @@ namespace Ytb.Services
 
                 var playlistItemsResponse = await playlistItemsRequest.ExecuteAsync();
 
-                // gom videoId lại để query 1 lần
                 var videoIds = playlistItemsResponse.Items
                     .Select(i => i.Snippet.ResourceId.VideoId)
                     .ToList();
 
                 if (videoIds.Count > 0)
                 {
-                    var videosRequest = youtubeService.Videos.List("contentDetails,snippet");
+                    // Lấy thêm thống kê view
+                    var videosRequest = youtubeService.Videos.List("contentDetails,snippet,statistics");
                     videosRequest.Id = string.Join(",", videoIds);
 
                     var videosResponse = await videosRequest.ExecuteAsync();
 
                     foreach (var video in videosResponse.Items)
                     {
-                        // parse duration dạng PT#M#S
                         var duration = System.Xml.XmlConvert.ToTimeSpan(video.ContentDetails.Duration);
                         if (duration.TotalSeconds <= 600)
                         {
-                            // Bỏ short
                             continue;
                         }
 
-                        var videoUrl = $"https://www.youtube.com/watch?v={video.Id}";
-                        File.AppendAllText(filePath, videoUrl + Environment.NewLine);
-
-                        File.AppendAllText(filePath2,
-                            $"{videoUrl}\t{duration}\t{video.Snippet.PublishedAtRaw}\t{video.Snippet.Title}{Environment.NewLine}");
-
-                        Console.WriteLine(videoUrl);
+                        var viewCount = video.Statistics?.ViewCount ?? 0;
+                        allVideos.Add((
+                            Id: video.Id,
+                            Title: video.Snippet.Title,
+                            Duration: duration,
+                            PublishedAt: video.Snippet.PublishedAtRaw,
+                            ViewCount: viewCount
+                        ));
                     }
                 }
 
                 nextPageToken = playlistItemsResponse.NextPageToken;
             }
             while (nextPageToken != null);
+
+            // Sắp xếp giảm dần theo view
+            var sortedVideos = allVideos.OrderByDescending(v => v.ViewCount).ToList();
+
+            Console.WriteLine($"\nTổng số video hợp lệ: {sortedVideos.Count}");
+            Console.WriteLine("Đang ghi file...");
+
+            foreach (var video in sortedVideos)
+            {
+                var url = $"https://www.youtube.com/watch?v={video.Id}";
+                File.AppendAllText(filePath, url + Environment.NewLine);
+
+                File.AppendAllText(filePath2,
+                    $"{video.PublishedAt}\t{url}\t{video.ViewCount}\t{video.Title}\t{video.Duration}{Environment.NewLine}");
+            }
 
             Console.WriteLine("\nHoàn thành!");
         }
