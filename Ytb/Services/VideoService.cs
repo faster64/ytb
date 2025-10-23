@@ -90,7 +90,7 @@ namespace Ytb.Services
                     cropArgs = $"-i \"{inputVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:650,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
                     alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
                     finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
-                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:400\" " +
+                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:600\" " +
                         "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
                         $"\"{outputVideo}\"";
                 }
