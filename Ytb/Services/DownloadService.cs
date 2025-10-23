@@ -40,8 +40,8 @@ namespace Ytb.Services
                         var processFileName = Path.Combine(Directory.GetCurrentDirectory(), "yt-dlp.exe");
                         var cookiePath = Path.Combine(Directory.GetCurrentDirectory(), "cookies.txt");
 
-                        var arguments = $"--cookies \"C:\\temp\\youtube_cookies.txt\" -f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg \"{url.Trim()}\"";
-                        // var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";
+                        //var arguments = $"--cookies \"C:\\temp\\youtube_cookies.txt\" -f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg \"{url.Trim()}\"";
+                        var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";
                         var process = new Process
                         {
                             StartInfo = new ProcessStartInfo
@@ -113,6 +113,12 @@ namespace Ytb.Services
 
             // Trim dấu . hoặc khoảng trắng ở cuối
             cleaned = cleaned.TrimEnd('.', ' ');
+
+            var forbiddenWords = new List<string> { "…", "？" };
+            foreach (var str in forbiddenWords)
+            {
+                cleaned = cleaned.Replace(str, " ");
+            }
 
             // Nếu là tên bị cấm trên Windows (CON, PRN, …) thì thêm _ để an toàn
             var reservedNames = new[] { "CON", "PRN", "AUX", "NUL",

@@ -226,11 +226,10 @@ async Task RenderAudioVideosAsync()
     Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
 }
 
-async Task CreateVideosFromImagesAsync(string path)
+async Task CreateVideosFromImagesAsync(string folderPath)
 {
     for (int i = 1; i <= 500; i++)
     {
-        var folderPath = $"D:\\Zutube\\cut-video-3000\\backgrounds\\{i}";
         if (!Directory.Exists(folderPath))
         {
             continue;
