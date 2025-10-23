@@ -84,6 +84,8 @@ namespace Ytb.Services
                     }
                 }
             }
+
+            new ConfigService().SetApiKey("AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus");
         }
     }
 }
