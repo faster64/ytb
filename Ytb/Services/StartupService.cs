@@ -86,6 +86,39 @@ namespace Ytb.Services
             }
 
             new ConfigService().SetApiKey("AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus");
+
+            UpdateYtDlpAsync().GetAwaiter().GetResult();
+        }
+
+        private static async Task UpdateYtDlpAsync()
+        {
+            const string ytDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
+            const string ytDlpFile = "yt-dlp.exe";
+
+            try
+            {
+                if (File.Exists(ytDlpFile))
+                {
+                    Console.WriteLine("Đang xóa yt-dlp.exe cũ...");
+                    File.Delete(ytDlpFile);
+                }
+
+                Console.WriteLine("Đang tải yt-dlp.exe mới nhất...");
+
+                using var httpClient = new HttpClient();
+                var bytes = await httpClient.GetByteArrayAsync(ytDlpUrl);
+                await File.WriteAllBytesAsync(ytDlpFile, bytes);
+
+                Console.WriteLine("Cập nhật yt-dlp.exe thành công!");
+                Console.WriteLine();
+                Console.WriteLine();
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"Lỗi khi cập nhật yt-dlp.exe: {ex.Message}");
+                Console.ResetColor();
+            }
         }
     }
 }
