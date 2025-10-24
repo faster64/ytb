@@ -1,5 +1,4 @@
-﻿using FFmpegArgs.Cores.Enums;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Ytb;
 using Ytb.Enums;
 using Ytb.Extensions;
@@ -8,72 +7,74 @@ using Ytb.Services;
 await StartupService.InitializeAsync();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
-var choice = SelectOption();
-//var choice = OptionEnum.RenderAudioVideos;
 
-switch (choice)
+await Main();
+async Task Main()
 {
-    case OptionEnum.UpdateAPIKey:
-        var apiKey = "";
-        while (string.IsNullOrWhiteSpace(apiKey))
-        {
-            Console.Write("Nhập API Key mới: ");
-            apiKey = Console.ReadLine() ?? "";
-        }
-        new ConfigService().SetApiKey(apiKey);
+    var choice = SelectOption();
 
-        Console.WriteLine("Cập nhật API Key thành công.");
-        break;
+    switch (choice)
+    {
+        //case OptionEnum.UpdateAPIKey:
+        //    var apiKey = "";
+        //    while (string.IsNullOrWhiteSpace(apiKey))
+        //    {
+        //        Console.Write("Nhập API Key mới: ");
+        //        apiKey = Console.ReadLine() ?? "";
+        //    }
+        //    new ConfigService().SetApiKey(apiKey);
 
-    case OptionEnum.GetVideoUrlsFromChannel:
-        await GetVideoUrlsFromChannelAsync();
-        break;
+        //    Console.WriteLine("Cập nhật API Key thành công.");
+        //    break;
 
-    case OptionEnum.DownloadVideo:
-        var downloader = new DownloadService();
-        await downloader.DownloadVideosAsync();
-        break;
+        case OptionEnum.GetVideoUrlsFromChannel:
+            await GetVideoUrlsFromChannelAsync();
+            break;
 
-    case OptionEnum.AddPrefixToVideo:
-        Console.Write("Nhập path: ");
-        var path = Console.ReadLine();
+        case OptionEnum.DownloadVideo:
+            var downloader = new DownloadService();
+            await downloader.DownloadVideosAsync();
+            break;
 
-        new VideoService().AddPrefix(path);
-        Console.WriteLine("Thêm STT thành công");
-        break;
+        //case OptionEnum.AddPrefixToVideo:
+        //    Console.Write("Nhập path: ");
+        //    var path = Console.ReadLine();
 
-    case OptionEnum.RemovePrefixToVideo:
-        Console.Write("Nhập path: ");
-        var path2 = Console.ReadLine();
+        //    new VideoService().AddPrefix(path);
+        //    Console.WriteLine("Thêm STT thành công");
+        //    break;
 
-        new VideoService().RemovePrefix(path2);
-        Console.WriteLine("Xóa STT thành công");
-        break;
+        //case OptionEnum.RemovePrefixToVideo:
+        //    Console.Write("Nhập path: ");
+        //    var path2 = Console.ReadLine();
 
-    case OptionEnum.RenderAudioVideos:
-        await RenderAudioVideosAsync();
-        break;
+        //    new VideoService().RemovePrefix(path2);
+        //    Console.WriteLine("Xóa STT thành công");
+        //    break;
 
-    case OptionEnum.RenderLineVideos:
-        break;
+        case OptionEnum.RenderAudioVideos:
+            await RenderAudioVideosAsync();
+            break;
 
-    case OptionEnum.CreateVideoFromImage:
-        Console.Write("Nhập path: ");
-        var path3 = Console.ReadLine();
+        //case OptionEnum.RenderLineVideos:
+        //    break;
 
-        await CreateVideosFromImagesAsync(path3);
-        break;
+        case OptionEnum.CreateVideoFromImage:
+            await CreateVideosFromImagesAsync();
+            break;
 
-    case OptionEnum.CutAudioVideo:
-        await TrimVideoAudioAsync();
-        break;
+        case OptionEnum.CutAudioVideo:
+            await TrimVideoAudioAsync();
+            break;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine();
+    ConsoleService.WriteLineSuccess("----- Bấm nút bất kỳ để tiếp tục -----");
+    Console.ReadKey();
+    Console.Clear();
+    await Main();
 }
-
-
-Console.WriteLine();
-Console.WriteLine();
-Console.WriteLine("Press any key to close this console!");
-Console.ReadKey();
 
 OptionEnum SelectOption()
 {
@@ -94,7 +95,7 @@ OptionEnum SelectOption()
         validChoice = int.TryParse(result, out choice) && options.Exists(x => (int)x == choice);
         if (!validChoice)
         {
-            Console.Write("Lựa chọn không hợp lệ, chọn lại nào: ");
+            ConsoleService.WriteLineError("Lựa chọn không hợp lệ, chọn lại nào: ");
             result = Console.ReadLine();
         }
     }
@@ -121,7 +122,7 @@ async Task GetVideoUrlsFromChannelAsync()
     {
         if (!File.Exists(path))
         {
-            Console.WriteLine($"Không tìm thấy file {path}");
+            ConsoleService.WriteLineError($"Không tìm thấy file {path}");
             return;
         }
         var lines = await File.ReadAllLinesAsync(path);
@@ -129,7 +130,7 @@ async Task GetVideoUrlsFromChannelAsync()
 
         if (string.IsNullOrWhiteSpace(channelHandle))
         {
-            Console.WriteLine($"File {path} không có channel handle hợp lệ");
+            ConsoleService.WriteLineError($"File {path} không có channel handle hợp lệ");
             return;
         }
         await channelService.GetVideoUrlsAsync(channelHandle);
@@ -156,13 +157,13 @@ async Task RenderAudioVideosAsync()
 
     if (originVideos.Count < requiredVideoCount)
     {
-        Console.WriteLine($"Số video không đủ để render. Cần {requiredVideoCount} videos");
+        ConsoleService.WriteLineError($"Số video không đủ để render. Cần {requiredVideoCount} videos");
         return;
     }
 
     if (backgroundFolders.Count < config.NumberOfChannels)
     {
-        Console.WriteLine($"{PathManager.InputBackgroundPath} không đủ {config.NumberOfChannels} thư mục background.");
+        ConsoleService.WriteLineError($"{PathManager.InputBackgroundPath} không đủ {config.NumberOfChannels} thư mục background.");
         return;
     }
 
@@ -171,7 +172,7 @@ async Task RenderAudioVideosAsync()
         var bgFiles = Directory.EnumerateFiles(bgFolder, "*.jpg").ToList();
         if (bgFiles.Count < config.NumberOfVideosPerChannelDaily)
         {
-            Console.WriteLine($"Thư mục {bgFolder} không có đủ {config.NumberOfVideosPerChannelDaily} ảnh nền.");
+            ConsoleService.WriteLineError($"Thư mục {bgFolder} không có đủ {config.NumberOfVideosPerChannelDaily} ảnh nền.");
             return;
         }
     }
@@ -223,30 +224,31 @@ async Task RenderAudioVideosAsync()
     }
 
     sw.Stop();
-    Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
+    ConsoleService.WriteLineSuccess($"Render thành công sau {sw.Elapsed.TotalMinutes}m.");
 }
 
-async Task CreateVideosFromImagesAsync(string folderPath)
+async Task CreateVideosFromImagesAsync()
 {
+    var sw = Stopwatch.StartNew();
     for (int i = 1; i <= 500; i++)
     {
+        var folderPath = Path.Combine(PathManager.InputBackgroundPath, i.ToString());
         if (!Directory.Exists(folderPath))
         {
             continue;
         }
 
-        var sw = Stopwatch.StartNew();
         var images = Directory.EnumerateFiles(folderPath, "*.jpg").ToList();
 
         foreach (var imagePath in images)
         {
-            Directory.CreateDirectory(folderPath);
-            await new VideoService().CreateVideoFromImage(imagePath, Path.Combine(folderPath, imagePath.Split(Path.DirectorySeparatorChar).Last().Replace(".jpg", ".mp4")));
+            var outputVideo = Path.Combine(folderPath, imagePath.Split(Path.DirectorySeparatorChar).Last().Replace(".jpg", ".mp4"));
+            await new VideoService().CreateVideoFromImage(imagePath, outputVideo);
         }
-
-        sw.Stop();
-        Console.WriteLine($"Render took {sw.Elapsed.TotalSeconds}s.");
     }
+
+    sw.Stop();
+    ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds}s");
 }
 
 async Task TrimVideoAudioAsync()
@@ -266,5 +268,5 @@ async Task TrimVideoAudioAsync()
     }
 
     sw.Stop();
-    Console.WriteLine($"Trim video processes have been took {sw.Elapsed.TotalSeconds}s.");
+    ConsoleService.WriteLineSuccess($"Trim video processes have been took {sw.Elapsed.TotalSeconds}s.");
 }

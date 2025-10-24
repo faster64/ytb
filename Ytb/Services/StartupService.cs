@@ -29,6 +29,12 @@ namespace Ytb.Services
 
             Directory.SetCurrentDirectory(rootPath);
 
+            if (!File.Exists(VideoService._ffmpegPath))
+            {
+                ConsoleService.WriteLineError("Chưa cài đặt ffmpeg. Vui lòng kiểm tra lại");
+                throw new Exception();
+            }
+
             var folderPaths = new List<string>
             {
                 PathManager.ConfigPath,
@@ -102,31 +108,27 @@ namespace Ytb.Services
             {
                 var sw = Stopwatch.StartNew();
 
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine("Đang tải yt-dlp.exe mới nhất...");
+                ConsoleService.WriteLineSuccess("Đang tải yt-dlp.exe mới nhất...");
 
                 using var httpClient = new HttpClient();
                 var bytes = await httpClient.GetByteArrayAsync(ytDlpUrl);
 
                 if (File.Exists(ytDlpFile))
                 {
-                    Console.WriteLine("Đang xóa yt-dlp.exe cũ...");
+                    ConsoleService.WriteLineSuccess("Đang xóa yt-dlp.exe cũ...");
                     File.Delete(ytDlpFile);
                 }
 
                 await File.WriteAllBytesAsync(ytDlpFile, bytes);
 
                 sw.Stop();
-                Console.WriteLine($"Cập nhật yt-dlp.exe thành công sau {sw.Elapsed.TotalSeconds:N0}s!");
+                ConsoleService.WriteLineSuccess($"Cập nhật yt-dlp.exe thành công sau {sw.Elapsed.TotalSeconds:N0}s!");
                 Console.WriteLine();
                 Console.WriteLine();
-                Console.ResetColor();
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"Lỗi khi cập nhật yt-dlp.exe: {ex.Message}");
-                Console.ResetColor();
+                ConsoleService.WriteLineError($"Lỗi khi cập nhật yt-dlp.exe: {ex.Message}");
             }
         }
     }

@@ -5,8 +5,8 @@ namespace Ytb.Services
 {
     public class VideoService
     {
-        private string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
-        private string _ffprobePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffprobe.exe");
+        public static string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
+        public static string _ffprobePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffprobe.exe");
 
         public async Task ReplaceBackgroundAsync()
         {
@@ -67,30 +67,35 @@ namespace Ytb.Services
                 var cropArgs = "";
                 var alphaArgs = "";
                 var finalArgs = "";
+                var scale = "1280:720";
+                var chromaKey = "0x202020:0.2:0.1";
+                var cropValue = "in_w:190:0:650";
+                var overlayValue = "(main_w-overlay_w)/2:490";
+
                 if (hasNvidia)
                 {
                     cropArgs = $"-hwaccel cuda -i \"{inputVideo}\" " +
-                        "-vf \"scale=1280:720,crop=in_w:190:0:650,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" " +
+                        $"-vf \"scale={scale},crop={cropValue},lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" " +
                         "-c:v h264_nvenc -preset fast -b:v 5M " +
                         $"\"{croppedText}\"";
 
                     alphaArgs =
                         $"-hwaccel cuda -i \"{croppedText}\" " +
-                        "-vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" " +
+                        $"-vf \"format=yuva420p,chromakey={chromaKey}\" " +
                         "-c:v h264_nvenc -preset fast -b:v 5M " +
                         $"\"{overlayAlpha}\"";
 
                     finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
-                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:650\" " +
+                        $"-filter_complex \"[0:v][1:v] overlay={overlayValue}\" " +
                         "-c:v h264_nvenc -b:v 5M -preset fast -shortest " +
                         $"\"{outputVideo}\"";
                 }
                 else
                 {
-                    cropArgs = $"-i \"{inputVideo}\" -vf \"scale=1280:720,crop=in_w:190:0:650,lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
-                    alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey=0x202020:0.2:0.1\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
+                    cropArgs = $"-i \"{inputVideo}\" -vf \"scale={scale},crop={cropValue},lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
+                    alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey={chromaKey}\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
                     finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
-                        "-filter_complex \"[0:v][1:v] overlay=(main_w-overlay_w)/2:600\" " +
+                        $"-filter_complex \"[0:v][1:v] overlay={overlayValue}\" " +
                         "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
                         $"\"{outputVideo}\"";
                 }
@@ -101,21 +106,21 @@ namespace Ytb.Services
                 await RunProcessAsync(cropArgs);
 
                 sw.Stop();
-                Console.WriteLine("S1: " + sw.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("S1: " + sw.ElapsedMilliseconds + "ms");
 
                 // B2: Biến nền tối thành trong suốt (alpha)
                 var sw2 = Stopwatch.StartNew();
                 await RunProcessAsync(alphaArgs);
 
                 sw2.Stop();
-                Console.WriteLine("S2: " + sw2.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("S2: " + sw2.ElapsedMilliseconds + "ms");
 
                 var sw3 = Stopwatch.StartNew();
                 // B3: Overlay chữ vào giữa background
                 await RunProcessAsync(finalArgs);
 
                 sw3.Stop();
-                Console.WriteLine("S3: " + sw3.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("S3: " + sw3.ElapsedMilliseconds + "ms");
             }
             catch (Exception)
             {
