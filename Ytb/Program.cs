@@ -150,7 +150,7 @@ async Task RenderAudioVideosAsync()
 {
     var sw = Stopwatch.StartNew();
 
-    var config = new ConfigService().GetConfig().AudioConfig;
+    var config = ConfigService.GetConfig().AudioConfig;
     var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).ToList();
     var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
     var requiredVideoCount = config.NumberOfChannels * config.NumberOfVideosPerChannelDaily;

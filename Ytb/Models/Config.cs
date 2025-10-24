@@ -6,7 +6,7 @@
 
         public bool AutoGetNewYtDlp { get; set; }
 
-        public RenderConfig AudioConfig { get; set; }
+        public AudioRenderConfig AudioConfig { get; set; }
 
         public RenderConfig LineConfig { get; set; }
     }

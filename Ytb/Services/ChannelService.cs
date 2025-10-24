@@ -9,8 +9,7 @@ namespace Ytb.Services
         {
             handle = handle.Trim();
 
-            var configService = new ConfigService();
-            var apiKey = configService.GetApiKey();
+            var apiKey = ConfigService.GetApiKey();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 Console.WriteLine("Chưa có api key. Vui lòng cấu hình trong file config.txt");

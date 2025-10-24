@@ -9,7 +9,7 @@ namespace Ytb.Services
             var urls = await File.ReadAllLinesAsync(PathManager.InputFileDownloadPath);
             if (urls.Length == 0)
             {
-                Console.WriteLine("Không tìm thấy urls trong file.");
+                ConsoleService.WriteLineError("Không tìm thấy urls trong file.");
                 return;
             }
 
@@ -19,7 +19,7 @@ namespace Ytb.Services
             var outputDir = PathManager.InputOriginVideoPath;
             if (Directory.Exists(outputDir))
             {
-                Console.WriteLine("Xóa thư mục output cũ...");
+                Console.WriteLine("Đang xóa thư mục origin-videos cũ...");
                 Directory.Delete(outputDir, recursive: true);
             }
 
@@ -103,7 +103,7 @@ namespace Ytb.Services
             }
 
             sw.Stop();
-            Console.WriteLine($"All downloads completed. {sw.ElapsedMilliseconds:N0}ms");
+            ConsoleService.WriteLineSuccess($"Tải thành công {videos.Count()} videos. {sw.Elapsed.TotalSeconds:N0}s");
         }
 
         private string SanitizeFileName(string fileName)

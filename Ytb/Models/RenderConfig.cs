@@ -10,4 +10,11 @@
 
         public int CCT { get; set; }
     }
+
+    public class AudioRenderConfig : RenderConfig
+    {
+        public string CropValue { get; set; }
+
+        public string OverlayValue { get; set; }
+    }
 }

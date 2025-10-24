@@ -73,12 +73,14 @@ namespace Ytb.Services
                         {
                             ApiKey = "AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus",
                             AutoGetNewYtDlp = true,
-                            AudioConfig = new RenderConfig
+                            AudioConfig = new AudioRenderConfig
                             {
                                 LastRenderIndex = 0,
                                 NumberOfChannels = 5,
                                 NumberOfVideosPerChannelDaily = 5,
-                                CCT = 1
+                                CCT = 1,
+                                CropValue = "in_w:190:0:650",
+                                OverlayValue = "(main_w-overlay_w)/2:490"
                             },
                             LineConfig = new RenderConfig
                             {
@@ -93,7 +95,7 @@ namespace Ytb.Services
                 }
             }
 
-            if (new ConfigService().GetConfig().AutoGetNewYtDlp)
+            if (ConfigService.GetConfig().AutoGetNewYtDlp)
             {
                 await UpdateYtDlpAsync();
             }

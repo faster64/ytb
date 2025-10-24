@@ -69,8 +69,8 @@ namespace Ytb.Services
                 var finalArgs = "";
                 var scale = "1280:720";
                 var chromaKey = "0x202020:0.2:0.1";
-                var cropValue = "in_w:190:0:650";
-                var overlayValue = "(main_w-overlay_w)/2:490";
+                var cropValue = ConfigService.GetConfig().AudioConfig.CropValue; // "in_w:190:0:650"
+                var overlayValue = ConfigService.GetConfig().AudioConfig.OverlayValue; // "(main_w-overlay_w)/2:490";
 
                 if (hasNvidia)
                 {
@@ -106,21 +106,21 @@ namespace Ytb.Services
                 await RunProcessAsync(cropArgs);
 
                 sw.Stop();
-                ConsoleService.WriteLineSuccess("S1: " + sw.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("Crop: " + sw.Elapsed.TotalSeconds + "s");
 
                 // B2: Biến nền tối thành trong suốt (alpha)
                 var sw2 = Stopwatch.StartNew();
                 await RunProcessAsync(alphaArgs);
 
                 sw2.Stop();
-                ConsoleService.WriteLineSuccess("S2: " + sw2.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("Alpha: " + sw2.Elapsed.TotalSeconds + "s");
 
                 var sw3 = Stopwatch.StartNew();
                 // B3: Overlay chữ vào giữa background
                 await RunProcessAsync(finalArgs);
 
                 sw3.Stop();
-                ConsoleService.WriteLineSuccess("S3: " + sw3.ElapsedMilliseconds + "ms");
+                ConsoleService.WriteLineSuccess("Final: " + sw3.Elapsed.TotalSeconds + "s");
             }
             catch (Exception)
             {

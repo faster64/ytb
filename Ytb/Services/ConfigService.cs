@@ -5,24 +5,24 @@ namespace Ytb.Services
 {
     public class ConfigService
     {
-        public Config GetConfig()
+        public static Config GetConfig()
         {
             var json = File.ReadAllText(PathManager.ConfigFilePath);
             return JsonConvert.DeserializeObject<Config>(json);
         }
 
-        public void SaveConfig(Config config)
+        public static void SaveConfig(Config config)
         {
             var json = JsonConvert.SerializeObject(config, Formatting.Indented);
             File.WriteAllText(PathManager.ConfigFilePath, json);
         }
 
-        public string GetApiKey()
+        public static string GetApiKey()
         {
             return GetConfig().ApiKey;
         }
 
-        public void SetApiKey(string apiKey)
+        public static void SetApiKey(string apiKey)
         {
             var config = GetConfig();
             config.ApiKey = apiKey;
