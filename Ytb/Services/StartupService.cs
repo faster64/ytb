@@ -29,10 +29,15 @@ namespace Ytb.Services
 
             Directory.SetCurrentDirectory(rootPath);
 
+            Console.WriteLine($"Checking ffmpeg: {VideoService._ffmpegPath}");
             if (!File.Exists(VideoService._ffmpegPath))
             {
                 ConsoleService.WriteLineError("Chưa cài đặt ffmpeg. Vui lòng kiểm tra lại");
                 throw new Exception();
+            }
+            else
+            {
+                Console.Clear();
             }
 
             var folderPaths = new List<string>
@@ -75,19 +80,19 @@ namespace Ytb.Services
                             AutoGetNewYtDlp = true,
                             AudioConfig = new AudioRenderConfig
                             {
-                                LastRenderIndex = 0,
-                                NumberOfChannels = 5,
+                                CurrentRenderDay = 1,
+                                MaxRenderDays = 5,
                                 NumberOfVideosPerChannelDaily = 5,
-                                CCT = 1,
+                                CCT = 2,
                                 CropValue = "in_w:190:0:650",
-                                OverlayValue = "(main_w-overlay_w)/2:490"
+                                OverlayValue = "(main_w-overlay_w)/2:550"
                             },
                             LineConfig = new RenderConfig
                             {
-                                LastRenderIndex = 0,
-                                NumberOfChannels = 5,
+                                CurrentRenderDay = 1,
+                                MaxRenderDays = 5,
                                 NumberOfVideosPerChannelDaily = 5,
-                                CCT = 1
+                                CCT = 2
                             }
                         };
                         File.WriteAllText(path, JsonConvert.SerializeObject(config, Formatting.Indented));
@@ -99,6 +104,9 @@ namespace Ytb.Services
             {
                 await UpdateYtDlpAsync();
             }
+
+            Console.WriteLine("GPU: " + VideoService.HasNvidiaGpu());
+            Console.WriteLine();
         }
 
         private static async Task UpdateYtDlpAsync()
@@ -117,11 +125,11 @@ namespace Ytb.Services
 
                 if (File.Exists(ytDlpFile))
                 {
-                    ConsoleService.WriteLineSuccess("Đang xóa yt-dlp.exe cũ...");
                     File.Delete(ytDlpFile);
                 }
 
                 await File.WriteAllBytesAsync(ytDlpFile, bytes);
+                Console.Clear();
 
                 sw.Stop();
                 ConsoleService.WriteLineSuccess($"Cập nhật yt-dlp.exe thành công sau {sw.Elapsed.TotalSeconds:N0}s!");

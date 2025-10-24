@@ -50,7 +50,7 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
-        public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundImagePath)
+        public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundVideoPath)
         {
             var videoTitle = inputVideo.Split(Path.DirectorySeparatorChar).Last();
             var croppedText = $"cropped_text_{videoTitle}";
@@ -71,6 +71,14 @@ namespace Ytb.Services
                 var chromaKey = "0x202020:0.2:0.1";
                 var cropValue = ConfigService.GetConfig().AudioConfig.CropValue; // "in_w:190:0:650"
                 var overlayValue = ConfigService.GetConfig().AudioConfig.OverlayValue; // "(main_w-overlay_w)/2:490";
+                var arg =
+                    $"-i \"{backgroundVideoPath}\" -i \"{inputVideo}\" " +
+                    $"-filter_complex \"[1:v]scale={scale},crop={cropValue}," +
+                    "lutyuv=y='if(gt(val,180),255,0)':u=128:v=128," +
+                    "format=yuva420p,colorchannelmixer=aa=1.0[overlay];" +
+                    $"[0:v][overlay]overlay={overlayValue}\" " +
+                    "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
+                    $"\"{outputVideo}\"";
 
                 if (hasNvidia)
                 {
@@ -85,7 +93,7 @@ namespace Ytb.Services
                         "-c:v h264_nvenc -preset fast -b:v 5M " +
                         $"\"{overlayAlpha}\"";
 
-                    finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
+                    finalArgs = $"-loop 1 -i \"{backgroundVideoPath}\" -i \"{overlayAlpha}\" " +
                         $"-filter_complex \"[0:v][1:v] overlay={overlayValue}\" " +
                         "-c:v h264_nvenc -b:v 5M -preset fast -shortest " +
                         $"\"{outputVideo}\"";
@@ -93,34 +101,29 @@ namespace Ytb.Services
                 else
                 {
                     cropArgs = $"-i \"{inputVideo}\" -vf \"scale={scale},crop={cropValue},lutyuv=y='if(gt(val,180),255,0)':u=128:v=128\" -c:v libx264 -crf 18 -preset ultrafast \"{croppedText}\"";
+
                     alphaArgs = $"-i \"{croppedText}\" -vf \"format=yuva420p,chromakey={chromaKey}\" -c:v libvpx-vp9 -auto-alt-ref 0 -speed 8 \"{overlayAlpha}\"";
-                    finalArgs = $"-loop 1 -i \"{backgroundImagePath}\" -i \"{overlayAlpha}\" " +
-                        $"-filter_complex \"[0:v][1:v] overlay={overlayValue}\" " +
-                        "-c:v libx264 -crf 18 -preset ultrafast -shortest " +
-                        $"\"{outputVideo}\"";
+
+                    finalArgs = $"-loop 1 -i \"{backgroundVideoPath}\" -i \"{overlayAlpha}\" -filter_complex \"[0:v][1:v] overlay={overlayValue}\" -c:v libx264 -crf 18 -preset ultrafast -shortest \"{outputVideo}\"";
                 }
 
-                var sw = Stopwatch.StartNew();
 
                 // B1: Crop vùng chữ (scale về 1280x720 rồi crop lại vùng cần thiết)
-                await RunProcessAsync(cropArgs);
-
-                sw.Stop();
-                ConsoleService.WriteLineSuccess("Crop: " + sw.Elapsed.TotalSeconds + "s");
+                await RunProcessAsync(arg);
 
                 // B2: Biến nền tối thành trong suốt (alpha)
-                var sw2 = Stopwatch.StartNew();
-                await RunProcessAsync(alphaArgs);
+                //var sw2 = Stopwatch.StartNew();
+                //await RunProcessAsync(alphaArgs);
 
-                sw2.Stop();
-                ConsoleService.WriteLineSuccess("Alpha: " + sw2.Elapsed.TotalSeconds + "s");
+                //sw2.Stop();
+                //ConsoleService.WriteLineSuccess("Alpha: " + sw2.Elapsed.TotalSeconds + "s");
 
-                var sw3 = Stopwatch.StartNew();
-                // B3: Overlay chữ vào giữa background
-                await RunProcessAsync(finalArgs);
+                //var sw3 = Stopwatch.StartNew();
+                //// B3: Overlay chữ vào giữa background
+                //await RunProcessAsync(finalArgs);
 
-                sw3.Stop();
-                ConsoleService.WriteLineSuccess("Final: " + sw3.Elapsed.TotalSeconds + "s");
+                //sw3.Stop();
+                //ConsoleService.WriteLineSuccess("Final: " + sw3.Elapsed.TotalSeconds + "s");
             }
             catch (Exception)
             {
@@ -231,8 +234,34 @@ namespace Ytb.Services
                 }
             };
 
-            process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine(e.Data); };
-            process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) Console.WriteLine("ERR: " + e.Data); };
+            var i = 0;
+            var ei = 0;
+            var li = 12;
+
+            process.OutputDataReceived += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    i++;
+                    if (i == li)
+                    {
+                        Console.WriteLine(e.Data);
+                        i = 0;
+                    }
+                }
+            };
+            process.ErrorDataReceived += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    ei++;
+                    if (ei == li)
+                    {
+                        Console.WriteLine("ERR: " + e.Data);
+                        ei = 0;
+                    }
+                }
+            };
 
             process.Start();
             process.BeginOutputReadLine();
@@ -271,7 +300,7 @@ namespace Ytb.Services
             }
         }
 
-        public bool HasNvidiaGpu()
+        public static bool HasNvidiaGpu()
         {
             try
             {

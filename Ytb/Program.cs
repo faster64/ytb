@@ -64,7 +64,10 @@ async Task Main()
             break;
 
         case OptionEnum.CutAudioVideo:
-            await TrimVideoAudioAsync();
+            Console.Write("Nhập path: ");
+            var path3 = Console.ReadLine();
+
+            await TrimVideoAudioAsync(path3);
             break;
     }
 
@@ -149,55 +152,64 @@ async Task GetVideoUrlsFromChannelAsync()
 async Task RenderAudioVideosAsync()
 {
     var sw = Stopwatch.StartNew();
-
-    var config = ConfigService.GetConfig().AudioConfig;
+    var config = ConfigService.GetConfig();
+    var audioConfig = config.AudioConfig;
     var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).ToList();
-    var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").ToList();
-    var requiredVideoCount = config.NumberOfChannels * config.NumberOfVideosPerChannelDaily;
+    var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
 
+    var numberOfChannels = backgroundFolders.Count;
+    var videosPerChannel = audioConfig.NumberOfVideosPerChannelDaily;
+    var requiredVideoCount = numberOfChannels * videosPerChannel;
+
+    #region Validate resources
     if (originVideos.Count < requiredVideoCount)
     {
-        ConsoleService.WriteLineError($"Số video không đủ để render. Cần {requiredVideoCount} videos");
-        return;
-    }
-
-    if (backgroundFolders.Count < config.NumberOfChannels)
-    {
-        ConsoleService.WriteLineError($"{PathManager.InputBackgroundPath} không đủ {config.NumberOfChannels} thư mục background.");
+        ConsoleService.WriteLineError($"Số kênh đang là {numberOfChannels}, mỗi kênh cần {videosPerChannel} videos => nên sẽ cần {requiredVideoCount} videos. Kiểm tra lại");
         return;
     }
 
     foreach (var bgFolder in backgroundFolders)
     {
-        var bgFiles = Directory.EnumerateFiles(bgFolder, "*.jpg").ToList();
-        if (bgFiles.Count < config.NumberOfVideosPerChannelDaily)
+        var bgFiles = Directory.EnumerateFiles(bgFolder, "*.mp4").ToList();
+        if (bgFiles.Count < videosPerChannel)
         {
-            ConsoleService.WriteLineError($"Thư mục {bgFolder} không có đủ {config.NumberOfVideosPerChannelDaily} ảnh nền.");
+            ConsoleService.WriteLineError($"Thư mục {bgFolder} không có đủ {videosPerChannel} video nền.");
             return;
         }
     }
+    #endregion
 
-    var currentIndex = config.LastRenderIndex + 1;
     var videoService = new VideoService();
     var random = new Random();
 
-    foreach (var backgroundFolder in backgroundFolders)
+    var startIndex = (audioConfig.CurrentRenderDay - 1) * videosPerChannel;
+    for (int channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
     {
+        var backgroundFolder = backgroundFolders[channelIndex];
         var folder = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
-        var folderPath = Path.Combine(PathManager.OutputsPath, folder);
+        var outputPath = Path.Combine(PathManager.OutputsPath, $"day_{audioConfig.CurrentRenderDay}", folder);
 
-        if (Directory.Exists(folderPath))
+        if (Directory.Exists(outputPath))
         {
-            Directory.Delete(folderPath, recursive: true);
+            Directory.Delete(outputPath, recursive: true);
         }
-        Directory.CreateDirectory(folderPath);
 
-        var videoPaths = originVideos.Take(config.NumberOfVideosPerChannelDaily).Skip(config.LastRenderIndex * config.NumberOfVideosPerChannelDaily).ToList();
-        var backgroundPaths = Directory.EnumerateFiles(backgroundFolder, "*.jpg").ToList();
+        var videoPaths = new List<string>();
+        while (videoPaths.Count < videosPerChannel)
+        {
+            if (startIndex >= originVideos.Count)
+            {
+                startIndex = 0;
+            }
+
+            videoPaths.Add(originVideos[startIndex++]);
+        }
+
+        var backgroundPaths = Directory.EnumerateFiles(backgroundFolder, "*.mp4").ToList();
         var tasks = new List<Task>();
 
         var selectedBackgroundPaths = new List<string>();
-        while (selectedBackgroundPaths.Count < config.NumberOfVideosPerChannelDaily)
+        while (selectedBackgroundPaths.Count < videosPerChannel)
         {
             var randomNumber = random.Next(0, backgroundPaths.Count - 1);
             while (selectedBackgroundPaths.Contains(backgroundPaths[randomNumber]))
@@ -212,9 +224,37 @@ async Task RenderAudioVideosAsync()
         {
             var videoPath = videoPaths[i];
             var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last();
-            var outputVideo = Path.Combine(PathManager.OutputsPath, folder, videoTitle);
+            var outputVideo = Path.Combine(outputPath, videoTitle);
+            var index = i;
 
-            await videoService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[i]);
+            Directory.CreateDirectory(outputPath);
+
+            tasks.Add(Task.Run(async () =>
+            {
+                var sw2 = Stopwatch.StartNew();
+                await videoService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[index]);
+
+                var thumbnailPath = Path.Combine(PathManager.InputOriginVideoPath, videoPath.Replace(".mp4", ".jpg"));
+                var thumbnailOutputPath = outputVideo.Replace(".mp4", ".jpg");
+
+                try
+                {
+                    File.Copy(thumbnailPath, thumbnailOutputPath, overwrite: true);
+                }
+                catch (Exception ex)
+                {
+                    ConsoleService.WriteLineError(ex.Message);
+                }
+
+                sw2.Stop();
+                ConsoleService.WriteLineSuccess($"[{folder}] {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {sw2.Elapsed.TotalSeconds:N0}s");
+            }));
+
+            if (tasks.Count >= audioConfig.CCT)
+            {
+                await Task.WhenAll(tasks);
+                tasks.Clear();
+            }
         }
 
         if (tasks.Count > 0)
@@ -223,8 +263,25 @@ async Task RenderAudioVideosAsync()
         }
     }
 
+    if (audioConfig.CurrentRenderDay >= audioConfig.MaxRenderDays)
+    {
+        audioConfig.CurrentRenderDay = 1;
+        ConfigService.SaveConfig(ConfigService.GetConfig());
+
+        Directory.Delete(PathManager.InputOriginVideoPath, recursive: true);
+        Directory.CreateDirectory(PathManager.InputOriginVideoPath);
+
+        ConsoleService.WriteLineError("Đã render xong hết video phase này. Thị Hoa, bạn hãy tải video mới!");
+    }
+    else
+    {
+        audioConfig.CurrentRenderDay++;
+    }
+
+    ConfigService.SaveConfig(config);
+
     sw.Stop();
-    ConsoleService.WriteLineSuccess($"Render thành công sau {sw.Elapsed.TotalMinutes}m.");
+    ConsoleService.WriteLineSuccess($"Render thành công sau {sw.Elapsed.TotalMinutes:N0}m.");
 }
 
 async Task CreateVideosFromImagesAsync()
@@ -248,25 +305,23 @@ async Task CreateVideosFromImagesAsync()
     }
 
     sw.Stop();
-    ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds}s");
+    ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds:N0}s");
 }
 
-async Task TrimVideoAudioAsync()
+async Task TrimVideoAudioAsync(string path)
 {
-    var folderPath = PathManager.InputOriginVideoPath;
-    var sw = Stopwatch.StartNew();
+    var folderPath = !string.IsNullOrEmpty(path) ? path : PathManager.InputOriginVideoPath;
     var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
 
     foreach (var videoPath in videos)
     {
         var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
         var outputVideo = Path.Combine(folderPath, "cutted_" + videoTitle + ".mp4");
-        await new VideoService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(10));
+        await new VideoService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(60));
 
         File.Delete(videoPath);
         File.Move(outputVideo, videoPath);
     }
 
-    sw.Stop();
-    ConsoleService.WriteLineSuccess($"Trim video processes have been took {sw.Elapsed.TotalSeconds}s.");
+    ConsoleService.WriteLineSuccess("Ok!");
 }

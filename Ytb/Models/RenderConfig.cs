@@ -2,9 +2,9 @@
 {
     public class RenderConfig
     {
-        public int LastRenderIndex { get; set; }
+        public int CurrentRenderDay { get; set; }
 
-        public int NumberOfChannels { get; set; }
+        public int MaxRenderDays { get; set; }
 
         public int NumberOfVideosPerChannelDaily { get; set; }
 
