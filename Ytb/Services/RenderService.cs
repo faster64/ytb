@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace Ytb.Services
 {
-    public class VideoService
+    public class RenderService
     {
         public static string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
         public static string _ffprobePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffprobe.exe");
@@ -50,7 +50,7 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
-        public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundVideoPath)
+        public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundVideoPath, string logPrefix = "")
         {
             var videoTitle = inputVideo.Split(Path.DirectorySeparatorChar).Last();
             var croppedText = $"cropped_text_{videoTitle}";
@@ -109,7 +109,7 @@ namespace Ytb.Services
 
 
                 // B1: Crop vùng chữ (scale về 1280x720 rồi crop lại vùng cần thiết)
-                await RunProcessAsync(arg);
+                await RunProcessAsync(arg, logPrefix);
 
                 // B2: Biến nền tối thành trong suốt (alpha)
                 //var sw2 = Stopwatch.StartNew();
@@ -219,7 +219,7 @@ namespace Ytb.Services
             return $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds:D3}";
         }
 
-        private async Task RunProcessAsync(string arguments)
+        private async Task RunProcessAsync(string arguments, string logPrefix = "")
         {
             var process = new Process
             {
@@ -236,16 +236,16 @@ namespace Ytb.Services
 
             var i = 0;
             var ei = 0;
-            var li = 12;
+            var li = 40;
 
             process.OutputDataReceived += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     i++;
-                    if (i == li)
+                    if (i >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.WriteLine(e.Data);
+                        Console.WriteLine(logPrefix + e.Data);
                         i = 0;
                     }
                 }
@@ -255,9 +255,9 @@ namespace Ytb.Services
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     ei++;
-                    if (ei == li)
+                    if (ei >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.WriteLine("ERR: " + e.Data);
+                        Console.WriteLine(logPrefix + "ERR: " + e.Data);
                         ei = 0;
                     }
                 }
@@ -267,37 +267,6 @@ namespace Ytb.Services
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
             await process.WaitForExitAsync();
-        }
-
-        private async Task<string> RunProcessWithOutputAsync(string arguments)
-        {
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = _ffprobePath,
-                Arguments = arguments,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using (var process = new Process())
-            {
-                process.StartInfo = processStartInfo;
-                process.Start();
-
-                string output = await process.StandardOutput.ReadToEndAsync();
-                string error = await process.StandardError.ReadToEndAsync();
-
-                await process.WaitForExitAsync();
-
-                if (process.ExitCode != 0)
-                {
-                    throw new Exception($"Process failed with exit code {process.ExitCode}: {error}");
-                }
-
-                return output;
-            }
         }
 
         public static bool HasNvidiaGpu()

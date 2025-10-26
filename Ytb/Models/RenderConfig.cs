@@ -8,7 +8,9 @@
 
         public int NumberOfVideosPerChannelDaily { get; set; }
 
-        public int CCT { get; set; }
+        public List<int> IgnoreChannels { get; set; } = new();
+
+        public int CCT { get; set; } = 2;
     }
 
     public class AudioRenderConfig : RenderConfig

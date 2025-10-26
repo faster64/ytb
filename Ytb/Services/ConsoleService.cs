@@ -29,5 +29,15 @@ namespace Ytb.Services
                 Console.ResetColor();
             }
         }
+
+        public static void WriteLineWarning(string text)
+        {
+            lock (_lock)
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine(text);
+                Console.ResetColor();
+            }
+        }
     }
 }

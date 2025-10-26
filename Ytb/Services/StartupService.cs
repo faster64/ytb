@@ -29,8 +29,8 @@ namespace Ytb.Services
 
             Directory.SetCurrentDirectory(rootPath);
 
-            Console.WriteLine($"Checking ffmpeg: {VideoService._ffmpegPath}");
-            if (!File.Exists(VideoService._ffmpegPath))
+            Console.WriteLine($"Checking ffmpeg: {RenderService._ffmpegPath}");
+            if (!File.Exists(RenderService._ffmpegPath))
             {
                 ConsoleService.WriteLineError("Chưa cài đặt ffmpeg. Vui lòng kiểm tra lại");
                 throw new Exception();
@@ -105,7 +105,7 @@ namespace Ytb.Services
                 await UpdateYtDlpAsync();
             }
 
-            Console.WriteLine("GPU: " + VideoService.HasNvidiaGpu());
+            Console.WriteLine("GPU: " + RenderService.HasNvidiaGpu());
             Console.WriteLine();
         }
 
