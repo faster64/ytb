@@ -165,7 +165,7 @@ async Task RenderAudioVideosAsync()
     var sw = Stopwatch.StartNew();
     var config = ConfigService.GetConfig();
     var audioConfig = config.AudioConfig;
-    ConsoleService.WriteLineSuccess($"Ngày hiện tại: {audioConfig.CurrentRenderDay}/{audioConfig.MaxRenderDays}");
+    ConsoleService.WriteLineSuccess($"Bắt đầu render, ngày hiện tại: {audioConfig.CurrentRenderDay}/{audioConfig.MaxRenderDays}");
 
     var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).OrderBy(x => x.Length).ThenBy(x => x).ToList();
     var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
@@ -192,7 +192,6 @@ async Task RenderAudioVideosAsync()
     }
     #endregion
 
-    ConsoleService.WriteLineSuccess("Bắt đầu render...");
     Console.WriteLine();
 
     var renderService = new RenderService();
@@ -221,7 +220,7 @@ async Task RenderAudioVideosAsync()
         }
 
         var folder = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
-        var outputPath = Path.Combine(PathManager.OutputsPath, $"day_{audioConfig.CurrentRenderDay}", folder);
+        var outputPath = Path.Combine(PathManager.OutputsPath, folder);
 
         if (Directory.Exists(outputPath))
         {
@@ -229,9 +228,8 @@ async Task RenderAudioVideosAsync()
         }
 
         var backgroundPaths = Directory.EnumerateFiles(backgroundFolder, "*.mp4").ToList();
-        var tasks = new List<Task>();
-
         var selectedBackgroundPaths = new List<string>();
+
         while (selectedBackgroundPaths.Count < videosPerChannel)
         {
             var randomNumber = random.Next(0, backgroundPaths.Count - 1);
@@ -243,46 +241,43 @@ async Task RenderAudioVideosAsync()
             selectedBackgroundPaths.Add(backgroundPaths[randomNumber]);
         }
 
+        var semaphore = new SemaphoreSlim(audioConfig.CCT);
+        var tasks = new List<Task>();
         for (int i = 0; i < videoPaths.Count; i++)
         {
             var videoPath = videoPaths[i];
-            var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last();
+            var videoTitle = Path.GetFileName(videoPath);
             var outputVideo = Path.Combine(outputPath, videoTitle);
             var index = i;
 
             Directory.CreateDirectory(outputPath);
 
-            tasks.Add(Task.Run(async () =>
+            await semaphore.WaitAsync();
+            var task = Task.Run(async () =>
             {
-                var sw2 = Stopwatch.StartNew();
-                await renderService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[index], $"[Kênh {channelName}] ");
+                try
+                {
+                    var sw2 = Stopwatch.StartNew();
+                    await renderService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[index], $"[Kênh {channelName}] ");
+                    sw2.Stop();
 
-                //var thumbnailPath = Path.Combine(PathManager.InputOriginVideoPath, videoPath.Replace(".mp4", ".jpg"));
-                //var thumbnailOutputPath = outputVideo.Replace(".mp4", ".jpg");
+                    var seconds = Math.Floor(sw2.Elapsed.TotalSeconds);
+                    var minutes = Math.Floor(seconds / 60);
+                    seconds %= 60;
 
-                //try
-                //{
-                //    File.Copy(thumbnailPath, thumbnailOutputPath, overwrite: true);
-                //}
-                //catch (Exception ex)
-                //{
-                //    ConsoleService.WriteLineError(ex.Message);
-                //}
+                    ConsoleService.WriteLineSuccess($"[Kênh {folder}]: video {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {minutes}m{seconds}s");
+                }
+                catch (Exception ex)
+                {
+                    ConsoleService.WriteLineError($"[Kênh {folder}]: Lỗi render video {videoTitle}: {ex.Message}");
+                }
+                finally
+                {
+                    semaphore.Release();
+                }
+            });
 
-                sw2.Stop();
-
-                var seconds = Math.Floor(sw2.Elapsed.TotalSeconds);
-                var minutes = Math.Floor(seconds / 60);
-                seconds %= 60;
-
-                ConsoleService.WriteLineSuccess($"[Kênh {folder}]: video {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {minutes}m{seconds}s");
-            }));
-
-            if (tasks.Count >= audioConfig.CCT)
-            {
-                await Task.WhenAll(tasks);
-                tasks.Clear();
-            }
+            tasks.Add(task);
         }
 
         if (tasks.Count > 0)
@@ -309,7 +304,7 @@ async Task RenderAudioVideosAsync()
     ConfigService.SaveConfig(config);
 
     sw.Stop();
-    ConsoleService.WriteLineSuccess($"Hoàn thành công sau {sw.Elapsed.TotalMinutes:N0}m.");
+    ConsoleService.WriteLineSuccess($"Hoàn thành sau {sw.Elapsed.TotalMinutes:N0}m.");
 }
 
 async Task CreateVideosFromImagesAsync()

@@ -19,7 +19,7 @@ namespace Ytb.Enums
         //[Description("Xóa STT trong tên video")]
         //RemovePrefixToVideo = 4,
 
-        [Description("Render audio videos")]
+        [Description("Render")]
         RenderAudioVideos = 5,
 
         //[Description("Render LINE videos")]
@@ -28,7 +28,7 @@ namespace Ytb.Enums
         [Description("Tạo video nền từ ảnh")]
         CreateVideoFromImage = 7,
 
-        [Description("Cắt video audio")]
+        [Description("Cắt video")]
         CutAudioVideo = 8
     }
 }
