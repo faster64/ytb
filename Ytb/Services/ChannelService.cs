@@ -1,6 +1,7 @@
 ﻿using Google.Apis.Services;
 using Google.Apis.YouTube.v3;
 using System.Diagnostics;
+using System.Text;
 
 namespace Ytb.Services
 {
@@ -230,10 +231,7 @@ namespace Ytb.Services
 
             var forbiddenWords = new Dictionary<string, string> {
                 {"…", "..."},
-                {"？", " "},
-                {"。" , " "},
-                {"、", "" },
-                {"⧸", " - " }
+                {"？", " "}
             };
             foreach (var word in forbiddenWords)
             {
@@ -246,9 +244,11 @@ namespace Ytb.Services
             "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" };
 
             if (reservedNames.Contains(cleaned.ToUpper()))
+            {
                 cleaned += "_";
+            }
 
-            return cleaned.Trim();
+            return cleaned.Trim().Normalize(NormalizationForm.FormC);
         }
     }
 }

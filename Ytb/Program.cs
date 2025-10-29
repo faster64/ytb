@@ -1,4 +1,6 @@
-﻿using System.Diagnostics;
+﻿using FFmpegArgs.Cores.Enums;
+using FFMpegCore.Enums;
+using System.Diagnostics;
 using Ytb;
 using Ytb.Enums;
 using Ytb.Extensions;
@@ -10,14 +12,23 @@ var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 
 //if (true)
 //{
-//    var f = Directory.EnumerateDirectories(PathManager.OutputsPath + "\\day_1").OrderBy(x => x.Length).ThenBy(x => x).ToList();
-//    foreach (var folder in f)
+//    var items1 = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.jpg").OrderBy(x => x.Length).ThenBy(x => x).ToList();
+//    var items2 = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
+
+//    foreach (var item in items1)
 //    {
-//        var items = Directory.EnumerateFiles(Path.Combine(PathManager.OutputsPath, folder), "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
-//        foreach (var item in items)
-//        {
-//            DownloadService.SanitizeFileName(item);
-//        }
+//        var name = Path.GetFileName(item);
+//        var newName = ChannelService.SanitizeFileName(name);
+
+//        File.Move(Path.Combine(PathManager.InputOriginVideoPath, name), Path.Combine(PathManager.InputOriginVideoPath, newName));
+//    }
+
+//    foreach (var item in items2)
+//    {
+//        var name = Path.GetFileName(item);
+//        var newName = ChannelService.SanitizeFileName(name);
+
+//        File.Move(Path.Combine(PathManager.InputOriginVideoPath, name), Path.Combine(PathManager.InputOriginVideoPath, newName));
 //    }
 //}
 
@@ -219,8 +230,7 @@ async Task RenderAudioVideosAsync()
             continue;
         }
 
-        var folder = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
-        var outputPath = Path.Combine(PathManager.OutputsPath, folder);
+        var outputPath = Path.Combine(PathManager.OutputsPath, channelName);
 
         if (Directory.Exists(outputPath))
         {
@@ -265,11 +275,11 @@ async Task RenderAudioVideosAsync()
                     var minutes = Math.Floor(seconds / 60);
                     seconds %= 60;
 
-                    ConsoleService.WriteLineSuccess($"[Kênh {folder}]: video {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {minutes}m{seconds}s");
+                    ConsoleService.WriteLineSuccess($"[Kênh {channelName}]: video {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {minutes}m{seconds}s");
                 }
                 catch (Exception ex)
                 {
-                    ConsoleService.WriteLineError($"[Kênh {folder}]: Lỗi render video {videoTitle}: {ex.Message}");
+                    ConsoleService.WriteLineError($"[Kênh {channelName}]: Lỗi render video {videoTitle}: {ex.Message}");
                 }
                 finally
                 {
