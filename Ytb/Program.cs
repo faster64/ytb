@@ -174,6 +174,7 @@ async Task GetVideoUrlsFromChannelAsync()
 async Task RenderAudioVideosAsync()
 {
     var sw = Stopwatch.StartNew();
+    var startTime = DateTime.Now;
     var config = ConfigService.GetConfig();
     var audioConfig = config.AudioConfig;
     ConsoleService.WriteLineSuccess($"Bắt đầu render, ngày hiện tại: {audioConfig.CurrentRenderDay}/{audioConfig.MaxRenderDays}");
@@ -314,6 +315,9 @@ async Task RenderAudioVideosAsync()
     ConfigService.SaveConfig(config);
 
     sw.Stop();
+    var endTime = DateTime.Now;
+
+    ConsoleService.WriteLineSuccess($"{startTime.ToString("HH:mm:ss")} - {endTime.ToString("HH:mm:ss")}");
     ConsoleService.WriteLineSuccess($"Hoàn thành sau {sw.Elapsed.TotalMinutes:N0}m.");
 }
 
