@@ -2,17 +2,26 @@
 {
     public class PathManager
     {
-        public static string ConfigPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "configs");
-        public static string ConfigFilePath => Path.Combine(ConfigPath, "config.txt");
+        public static string ConfigPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "cau-hinh");
+        public static string ConfigFilePath => Path.Combine(ConfigPath, "file-cau-hinh.txt");
 
-        public static string ChannelsPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "channels");
-        public static string ChannelsFileHandlePath => Path.Combine(ChannelsPath, "channel_handle.txt");
+        public static string ChannelsPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "kenh-goc");
+        public static string ChannelsFileHandlePath => Path.Combine(ChannelsPath, "ten-kenh.txt");
+        public static string ChannelsFileDurationPath => Path.Combine(ChannelsPath, "cau-hinh-thoi-luong-video.txt");
 
-        public static string InputPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "inputs");
-        public static string InputBackgroundPath => Path.Combine(InputPath, "backgrounds");
-        public static string InputOriginVideoPath => Path.Combine(InputPath, "origin-videos");
-        public static string InputFileDownloadPath => Path.Combine(InputPath, "download_urls.txt");
 
-        public static string OutputsPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "outputs");
+        public static string InputPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "nguyen-lieu");
+
+        public static string InputLineBackgroundPath => Path.Combine(InputPath, "LINE", "video-nen");
+        public static string InputLineOriginVideoPath => Path.Combine(InputPath, "LINE", "video-goc");
+        public static string InputLineFileDownloadPath => Path.Combine(InputPath, "LINE", "link-tai-video.txt");
+        public static string InputLineFileChromaKeyPath => Path.Combine(InputPath, "LINE", "chroma-key.txt");
+
+        public static string InputOlderBackgroundPath => Path.Combine(InputPath, "nguoi-gia", "video-nen");
+        public static string InputOlderOriginVideoPath => Path.Combine(InputPath, "nguoi-gia", "video-goc");
+        public static string InputOlderFileDownloadPath => Path.Combine(InputPath, "nguoi-gia", "link-tai-video.txt");
+
+        public static string OutputLinePath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "video-dang", "LINE");
+        public static string OutputOlderPath => Path.Combine(Directory.GetCurrentDirectory(), "IO", "video-dang", "nguoi-gia");
     }
 }

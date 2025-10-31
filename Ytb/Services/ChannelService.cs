@@ -7,7 +7,7 @@ namespace Ytb.Services
 {
     public class ChannelService
     {
-        public static async Task GetVideoUrlsAsync(string handle)
+        public static async Task GetVideoUrlsAsync(string handle, int minMinuteDuration = 10)
         {
             handle = handle.Trim();
 
@@ -78,7 +78,7 @@ namespace Ytb.Services
                     foreach (var video in videosResponse.Items)
                     {
                         var duration = System.Xml.XmlConvert.ToTimeSpan(video.ContentDetails.Duration);
-                        if (duration.TotalSeconds <= 600)
+                        if (duration.TotalSeconds <= minMinuteDuration * 60)
                         {
                             continue;
                         }
@@ -116,25 +116,24 @@ namespace Ytb.Services
                     $"{video.PublishedAt}\t{url}\t{video.ViewCount}\t{video.Title}\t{video.Duration}{Environment.NewLine}");
             }
 
-            Console.WriteLine("\nHoàn thành!");
+            Console.WriteLine($"\nHoàn thành: {sortedVideos.Count:N0} videos");
         }
 
-        public static async Task DownloadVideosAsync()
+        public static async Task DownloadVideosAsync(string folderPath, string outputDir)
         {
-            var urls = await File.ReadAllLinesAsync(PathManager.InputFileDownloadPath);
+            var urls = await File.ReadAllLinesAsync(folderPath);
             if (urls.Length == 0)
             {
-                ConsoleService.WriteLineError("Không tìm thấy urls trong file.");
+                ConsoleService.WriteLineError("Không tìm thấy link trong file.");
                 return;
             }
 
             var sw = Stopwatch.StartNew();
             Console.WriteLine($"Bắt đầu tải {urls.Count()} videos...");
 
-            var outputDir = PathManager.InputOriginVideoPath;
             if (Directory.Exists(outputDir))
             {
-                Console.WriteLine("Đang xóa thư mục origin-videos cũ...");
+                Console.WriteLine("Đang xóa thư mục video-goc cũ...");
                 Directory.Delete(outputDir, recursive: true);
             }
 
@@ -153,7 +152,7 @@ namespace Ytb.Services
                     tasks.Add(Task.Run(async () =>
                     {
                         var processFileName = Path.Combine(Directory.GetCurrentDirectory(), "yt-dlp.exe");
-                        var cookiePath = Path.Combine(Directory.GetCurrentDirectory(), "cookies.txt");
+                        //var cookiePath = Path.Combine(Directory.GetCurrentDirectory(), "cookies.txt");
 
                         //var arguments = $"--cookies \"C:\\temp\\youtube_cookies.txt\" -f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg \"{url.Trim()}\"";
                         var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";

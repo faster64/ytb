@@ -8,6 +8,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="IO\configs\**" />
+	  <Compile Remove="IO\outputs\**" />
+	  <EmbeddedResource Remove="IO\configs\**" />
+	  <EmbeddedResource Remove="IO\outputs\**" />
+	  <None Remove="IO\configs\**" />
+	  <None Remove="IO\outputs\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Google.Apis.YouTube.v3" Version="1.70.0.3847" />
 
 		<!-- FFmpeg -->
@@ -22,11 +31,6 @@
 		<PackageReference Include="FFmpegArgs.Outputs" Version="1.6.0" />
 		<PackageReference Include="FFMpegCore" Version="5.1.0" />
 		<PackageReference Include="TqkLibrary.FFmpeg.Runtimes" Version="5.1.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="IO\configs\" />
-	  <Folder Include="IO\outputs\" />
 	</ItemGroup>
 
 </Project>

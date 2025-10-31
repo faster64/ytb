@@ -1,36 +1,15 @@
-﻿using FFmpegArgs.Cores.Enums;
-using FFMpegCore.Enums;
+﻿using Newtonsoft.Json;
 using System.Diagnostics;
 using Ytb;
+using Ytb.Contants;
 using Ytb.Enums;
 using Ytb.Extensions;
+using Ytb.Models;
 using Ytb.Services;
 
 await StartupService.InitializeAsync();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
-
-//if (true)
-//{
-//    var items1 = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.jpg").OrderBy(x => x.Length).ThenBy(x => x).ToList();
-//    var items2 = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
-
-//    foreach (var item in items1)
-//    {
-//        var name = Path.GetFileName(item);
-//        var newName = ChannelService.SanitizeFileName(name);
-
-//        File.Move(Path.Combine(PathManager.InputOriginVideoPath, name), Path.Combine(PathManager.InputOriginVideoPath, newName));
-//    }
-
-//    foreach (var item in items2)
-//    {
-//        var name = Path.GetFileName(item);
-//        var newName = ChannelService.SanitizeFileName(name);
-
-//        File.Move(Path.Combine(PathManager.InputOriginVideoPath, name), Path.Combine(PathManager.InputOriginVideoPath, newName));
-//    }
-//}
 
 await Main();
 async Task Main()
@@ -55,8 +34,17 @@ async Task Main()
             await GetVideoUrlsFromChannelAsync();
             break;
 
-        case OptionEnum.DownloadVideo:
-            await ChannelService.DownloadVideosAsync();
+        case OptionEnum.DownloadLineVideo:
+            await ChannelService.DownloadVideosAsync(PathManager.InputLineFileDownloadPath, PathManager.InputLineOriginVideoPath);
+            if (File.Exists(PathManager.InputLineFileChromaKeyPath))
+            {
+                File.Delete(PathManager.InputLineFileChromaKeyPath);
+            }
+            File.Create(PathManager.InputLineFileChromaKeyPath).Close();
+            break;
+
+        case OptionEnum.DownloadOlderVideo:
+            await ChannelService.DownloadVideosAsync(PathManager.InputOlderFileDownloadPath, PathManager.InputOlderOriginVideoPath);
             break;
 
         //case OptionEnum.AddPrefixToVideo:
@@ -75,22 +63,31 @@ async Task Main()
         //    Console.WriteLine("Xóa STT thành công");
         //    break;
 
-        case OptionEnum.RenderAudioVideos:
-            await RenderAudioVideosAsync();
+        case OptionEnum.RenderOlderVideos:
+            await RenderVideosAsync(GlobalConstant.OLDER);
             break;
 
-        //case OptionEnum.RenderLineVideos:
-        //    break;
-
-        case OptionEnum.CreateVideoFromImage:
-            await CreateVideosFromImagesAsync();
+        case OptionEnum.RenderLineVideos:
+            await RenderVideosAsync(GlobalConstant.LINE);
             break;
 
-        case OptionEnum.CutAudioVideo:
-            Console.Write("Nhập path: ");
+        case OptionEnum.CreateLineVideoFromImage:
+            await CreateVideosFromImagesAsync(PathManager.InputLineBackgroundPath);
+            break;
+
+        case OptionEnum.CreateOlderVideoFromImage:
+            await CreateVideosFromImagesAsync(PathManager.InputOlderBackgroundPath);
+            break;
+
+        case OptionEnum.CutVideo:
+            Console.Write("Nhập đường dẫn: ");
             var path3 = Console.ReadLine();
 
-            await TrimVideoAudioAsync(path3);
+            await TrimVideosAsync(path3);
+            break;
+
+        case OptionEnum.UpdateYtDlp:
+            await StartupService.UpdateYtDlpAsync();
             break;
     }
 
@@ -143,6 +140,9 @@ async Task GetVideoUrlsFromChannelAsync()
     var specialCharChoice = Console.ReadLine();
 
     Console.Clear();
+    var durationLines = await File.ReadAllLinesAsync(PathManager.ChannelsFileDurationPath);
+    var duration = int.Parse(durationLines.FirstOrDefault() ?? "10");
+
     if (specialCharChoice == "1")
     {
         if (!File.Exists(path))
@@ -158,7 +158,8 @@ async Task GetVideoUrlsFromChannelAsync()
             ConsoleService.WriteLineError($"File {path} không có channel handle hợp lệ");
             return;
         }
-        await ChannelService.GetVideoUrlsAsync(channelHandle);
+
+        await ChannelService.GetVideoUrlsAsync(channelHandle, duration);
     }
     else
     {
@@ -167,23 +168,78 @@ async Task GetVideoUrlsFromChannelAsync()
             Console.Write("Nhập channel handle (ví dụ: @line4091): ");
             channelHandle = Console.ReadLine() ?? "";
         }
-        await ChannelService.GetVideoUrlsAsync(channelHandle);
+        await ChannelService.GetVideoUrlsAsync(channelHandle, duration);
     }
 }
 
-async Task RenderAudioVideosAsync()
+async Task RenderVideosAsync(string type)
 {
+    var c = ConfigService.GetConfig();
+    var backgroundOutsidePath = "";
+    var originVideoPath = "";
+    var outputOutsidePath = "";
+
+    RenderConfig config;
+
+    switch (type)
+    {
+        case GlobalConstant.LINE:
+            config = c.LineConfig;
+            backgroundOutsidePath = PathManager.InputLineBackgroundPath;
+            originVideoPath = PathManager.InputLineOriginVideoPath;
+            outputOutsidePath = PathManager.OutputLinePath;
+            break;
+
+        case GlobalConstant.OLDER:
+            config = c.OlderConfig;
+            backgroundOutsidePath = PathManager.InputOlderBackgroundPath;
+            originVideoPath = PathManager.InputOlderOriginVideoPath;
+            outputOutsidePath = PathManager.OutputOlderPath;
+            break;
+
+        default:
+            ConsoleService.WriteLineError("Chưa hỗ trợ key này");
+            return;
+    }
+
     var sw = Stopwatch.StartNew();
     var startTime = DateTime.Now;
-    var config = ConfigService.GetConfig();
-    var audioConfig = config.AudioConfig;
-    ConsoleService.WriteLineSuccess($"Bắt đầu render, ngày hiện tại: {audioConfig.CurrentRenderDay}/{audioConfig.MaxRenderDays}");
 
-    var backgroundFolders = Directory.EnumerateDirectories(PathManager.InputBackgroundPath).OrderBy(x => x.Length).ThenBy(x => x).ToList();
-    var originVideos = Directory.EnumerateFiles(PathManager.InputOriginVideoPath, "*.mp4").OrderBy(x => x.Length).ThenBy(x => x).ToList();
+    var backgroundFolders = Directory.EnumerateDirectories(backgroundOutsidePath).OrderBy(x => x.Length).ThenBy(x => x).ToList();
+    if (backgroundFolders.Count == 0)
+    {
+        ConsoleService.WriteLineError("Chưa có kênh");
+        return;
+    }
+
+    if (type == GlobalConstant.LINE && !File.Exists(PathManager.InputLineFileChromaKeyPath))
+    {
+        ConsoleService.WriteLineError("Chưa có file chroma-key.txt");
+        return;
+    }
+
+    for (int i = 0; i < backgroundFolders.Count; i++)
+    {
+        var folder = backgroundFolders[i];
+        var exist = Directory.EnumerateFiles(folder, "*.mp4").FirstOrDefault();
+        if (exist == null)
+        {
+            ConsoleService.WriteLineError($"{folder}: chưa có video nền");
+            return;
+        }
+    }
+
+    var originVideos = Directory.EnumerateFiles(originVideoPath, "*.mp4").ToList();
+    var chromaKeys = type == GlobalConstant.LINE ? File.ReadAllLines(PathManager.InputLineFileChromaKeyPath) : new string[] { };
+
+    if (type == GlobalConstant.LINE && originVideos.Count > chromaKeys.Length)
+    {
+        ConsoleService.WriteLineError("Chưa đủ mã màu trong chroma-key.txt");
+        return;
+    }
 
     var numberOfChannels = backgroundFolders.Count;
-    var videosPerChannel = audioConfig.NumberOfVideosPerChannelDaily;
+    var videosPerChannel = config.NumberOfVideosPerChannelDaily;
     var requiredVideoCount = numberOfChannels * videosPerChannel;
 
     #region Validate resources
@@ -192,24 +248,15 @@ async Task RenderAudioVideosAsync()
         ConsoleService.WriteLineError($"Số kênh đang là {numberOfChannels}, mỗi kênh cần {videosPerChannel} videos => nên sẽ cần {requiredVideoCount} videos. Kiểm tra lại");
         return;
     }
-
-    foreach (var bgFolder in backgroundFolders)
-    {
-        var bgFiles = Directory.EnumerateFiles(bgFolder, "*.mp4").ToList();
-        if (bgFiles.Count < videosPerChannel)
-        {
-            ConsoleService.WriteLineError($"Thư mục {bgFolder} không có đủ {videosPerChannel} video nền.");
-            return;
-        }
-    }
     #endregion
 
+    ConsoleService.WriteLineSuccess($"Bắt đầu render, ngày hiện tại: {config.CurrentRenderDay}/{config.MaxRenderDays}");
     Console.WriteLine();
 
     var renderService = new RenderService();
     var random = new Random();
 
-    var startIndex = (audioConfig.CurrentRenderDay - 1) * videosPerChannel;
+    var startIndex = (config.CurrentRenderDay - 1) * videosPerChannel;
     for (int channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
     {
         var videoPaths = new List<string>();
@@ -225,34 +272,21 @@ async Task RenderAudioVideosAsync()
 
         var backgroundFolder = backgroundFolders[channelIndex];
         var channelName = backgroundFolder.Split(Path.DirectorySeparatorChar).Last();
-        if (audioConfig.IgnoreChannels.Any(x => backgroundFolder.EndsWith("\\" + x)))
+        if (config.IgnoreChannels.Any(x => backgroundFolder.EndsWith("\\" + x)))
         {
             ConsoleService.WriteLineWarning($"Bỏ qua kênh {channelName} theo cấu hình.");
             continue;
         }
 
-        var outputPath = Path.Combine(PathManager.OutputsPath, channelName);
+        var outputPath = Path.Combine(outputOutsidePath, channelName);
 
         if (Directory.Exists(outputPath))
         {
             Directory.Delete(outputPath, recursive: true);
         }
 
-        var backgroundPaths = Directory.EnumerateFiles(backgroundFolder, "*.mp4").ToList();
-        var selectedBackgroundPaths = new List<string>();
-
-        while (selectedBackgroundPaths.Count < videosPerChannel)
-        {
-            var randomNumber = random.Next(0, backgroundPaths.Count - 1);
-            while (selectedBackgroundPaths.Contains(backgroundPaths[randomNumber]))
-            {
-                randomNumber = random.Next(0, backgroundPaths.Count - 1);
-            }
-
-            selectedBackgroundPaths.Add(backgroundPaths[randomNumber]);
-        }
-
-        var semaphore = new SemaphoreSlim(audioConfig.CCT);
+        var backgroundPath = Directory.EnumerateFiles(backgroundFolder, "*.mp4").FirstOrDefault();
+        var semaphore = new SemaphoreSlim(config.CCT);
         var tasks = new List<Task>();
         for (int i = 0; i < videoPaths.Count; i++)
         {
@@ -263,13 +297,22 @@ async Task RenderAudioVideosAsync()
 
             Directory.CreateDirectory(outputPath);
 
-            await semaphore.WaitAsync();
             var task = Task.Run(async () =>
             {
+                await semaphore.WaitAsync();
                 try
                 {
                     var sw2 = Stopwatch.StartNew();
-                    await renderService.OverlayTextOnBackgroundAsync(videoPath, outputVideo, selectedBackgroundPaths[index], $"[Kênh {channelName}] ");
+                    switch (type)
+                    {
+                        case GlobalConstant.LINE:
+                            var chromaKey = chromaKeys[index];
+                            await renderService.RenderLineAsync(videoPath, outputVideo, backgroundPath, chromaKey, $"[Kênh {channelName}] ");
+                            break;
+                        case GlobalConstant.OLDER:
+                            await renderService.RenderOlderAsync(videoPath, outputVideo, backgroundPath, $"[Kênh {channelName}] ");
+                            break;
+                    }
                     sw2.Stop();
 
                     var seconds = Math.Floor(sw2.Elapsed.TotalSeconds);
@@ -297,22 +340,22 @@ async Task RenderAudioVideosAsync()
         }
     }
 
-    if (audioConfig.CurrentRenderDay >= audioConfig.MaxRenderDays)
+    if (config.CurrentRenderDay >= config.MaxRenderDays)
     {
-        audioConfig.CurrentRenderDay = 1;
+        config.CurrentRenderDay = 1;
         ConfigService.SaveConfig(ConfigService.GetConfig());
 
-        Directory.Delete(PathManager.InputOriginVideoPath, recursive: true);
-        Directory.CreateDirectory(PathManager.InputOriginVideoPath);
+        Directory.Delete(PathManager.InputLineOriginVideoPath, recursive: true);
+        Directory.CreateDirectory(PathManager.InputLineOriginVideoPath);
 
-        ConsoleService.WriteLineError("Đã render xong hết video phase này. Thị Hoa, bạn hãy tải video mới!");
+        ConsoleService.WriteLineError("Đã render xong hết video phase này. Bạn hãy tải video mới!");
     }
     else
     {
-        audioConfig.CurrentRenderDay++;
+        config.CurrentRenderDay++;
     }
 
-    ConfigService.SaveConfig(config);
+    ConfigService.SaveConfig(c);
 
     sw.Stop();
     var endTime = DateTime.Now;
@@ -321,12 +364,12 @@ async Task RenderAudioVideosAsync()
     ConsoleService.WriteLineSuccess($"Hoàn thành sau {sw.Elapsed.TotalMinutes:N0}m.");
 }
 
-async Task CreateVideosFromImagesAsync()
+async Task CreateVideosFromImagesAsync(string path)
 {
     var sw = Stopwatch.StartNew();
     for (int i = 1; i <= 500; i++)
     {
-        var folderPath = Path.Combine(PathManager.InputBackgroundPath, i.ToString());
+        var folderPath = Path.Combine(path, i.ToString());
         if (!Directory.Exists(folderPath))
         {
             continue;
@@ -345,11 +388,9 @@ async Task CreateVideosFromImagesAsync()
     ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds:N0}s");
 }
 
-async Task TrimVideoAudioAsync(string path)
+async Task TrimVideosAsync(string folderPath)
 {
-    var folderPath = !string.IsNullOrEmpty(path) ? path : PathManager.InputOriginVideoPath;
     var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
-
     foreach (var videoPath in videos)
     {
         var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
@@ -362,3 +403,20 @@ async Task TrimVideoAudioAsync(string path)
 
     ConsoleService.WriteLineSuccess("Ok!");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

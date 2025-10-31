@@ -4,9 +4,9 @@
     {
         public string ApiKey { get; set; }
 
-        public bool AutoGetNewYtDlp { get; set; }
+        public bool AutoUpdateYtDlp { get; set; }
 
-        public AudioRenderConfig AudioConfig { get; set; }
+        public OlderRenderConfig OlderConfig { get; set; }
 
         public RenderConfig LineConfig { get; set; }
     }

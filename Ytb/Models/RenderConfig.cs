@@ -13,7 +13,7 @@
         public int CCT { get; set; } = 2;
     }
 
-    public class AudioRenderConfig : RenderConfig
+    public class OlderRenderConfig : RenderConfig
     {
         public string CropValue { get; set; }
 

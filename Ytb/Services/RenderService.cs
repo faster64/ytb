@@ -8,49 +8,50 @@ namespace Ytb.Services
         public static string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
         public static string _ffprobePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffprobe.exe");
 
-        public async Task ReplaceBackgroundAsync()
+        public static double GetVideoDuration(string filePath)
         {
-            var inputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
-            var outputVideo = Path.Combine(PathManager.OutputsPath, "output_with_new_bg.mp4");
-            var backgroundImage = "D:\\12.jpg";
+            var psi = new ProcessStartInfo
+            {
+                FileName = "ffprobe",
+                Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 \"{filePath}\"",
+                RedirectStandardOutput = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
+            using var process = Process.Start(psi);
+            var output = process!.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            return double.TryParse(output, out var duration) ? duration : 0;
+        }
+
+        public async Task RenderLineAsync(string inputVideo, string outputVideo, string backgroundVideoPath, string chromaKey, string logPrefix = "")
+        {
             if (File.Exists(outputVideo))
             {
                 File.Delete(outputVideo);
             }
 
-            var arguments = $"-i \"{inputVideo}\" -i \"{backgroundImage}\" " +
-                            "-filter_complex " +
-                            "\"[1:v][0:v]scale2ref=force_original_aspect_ratio=decrease[bg][fgtmp];" +
-                            "[fgtmp]colorkey=0x7097B8:0.3:0.2[fg];" +
-                            "[bg][fg]overlay=0:0:format=auto[out]\" " +
-                            "-map \"[out]\" -map 0:a? -c:v libx264 -pix_fmt yuv420p -c:a aac -shortest -y " +
-                            $"\"{outputVideo}\"";
+            var overlayDuration = GetVideoDuration(inputVideo);
 
-            await RunProcessAsync(arguments);
+            var arguments =
+                $"-i \"{backgroundVideoPath}\" " + 
+                $"-i \"{inputVideo}\" " +
+                $"-filter_complex \"[1:v]scale=1280:720," +
+                $"colorkey=0x{chromaKey}:0.3:0.1," +
+                "format=yuva420p[overlay_video];" +
+                "[0:v][overlay_video]overlay=0:H-h[combined_video];" +
+                "[1:a]volume=1.0[overlay_audio]\" " +
+                "-map \"[combined_video]\" -map \"[overlay_audio]\" " +
+                "-c:v libx264 -c:a aac -preset ultrafast " +
+                $"-t {overlayDuration} " +
+                $"\"{outputVideo}\"";
+
+            await RunProcessAsync(arguments, logPrefix);
         }
 
-        public async Task RemoveBackgroundAsync()
-        {
-            var inputVideo = Path.Combine(PathManager.InputOriginVideoPath, "cutted.mp4");
-            var outputVideo = Path.Combine(PathManager.OutputsPath, "output_transparent.mov");
-
-            if (File.Exists(outputVideo))
-            {
-                File.Delete(outputVideo);
-            }
-
-            // Lệnh FFmpeg: colorkey, xuất nền trong suốt
-            var arguments = $"-i \"{inputVideo}\" " +
-                            "-filter_complex " +
-                            "\"[0:v]colorkey=0x7097B8:0.3:0.2[fg]\" " +  // bỏ màu xanh
-                            "-map \"[fg]\" -c:v qtrle -pix_fmt argb -y " +
-                            $"\"{outputVideo}\"";
-
-            await RunProcessAsync(arguments);
-        }
-
-        public async Task OverlayTextOnBackgroundAsync(string inputVideo, string outputVideo, string backgroundVideoPath, string logPrefix = "")
+        public async Task RenderOlderAsync(string inputVideo, string outputVideo, string backgroundVideoPath, string logPrefix = "")
         {
             var videoTitle = inputVideo.Split(Path.DirectorySeparatorChar).Last();
             var croppedText = $"cropped_text_{videoTitle}";
@@ -69,8 +70,8 @@ namespace Ytb.Services
                 var finalArgs = "";
                 var scale = "1280:720";
                 var chromaKey = "0x202020:0.2:0.1";
-                var cropValue = ConfigService.GetConfig().AudioConfig.CropValue; // "in_w:190:0:650"
-                var overlayValue = ConfigService.GetConfig().AudioConfig.OverlayValue; // "(main_w-overlay_w)/2:490";
+                var cropValue = ConfigService.GetConfig().OlderConfig.CropValue; // "in_w:190:0:650"
+                var overlayValue = ConfigService.GetConfig().OlderConfig.OverlayValue; // "(main_w-overlay_w)/2:490";
                 var arg =
                     $"-i \"{backgroundVideoPath}\" -i \"{inputVideo}\" " +
                     $"-filter_complex \"[1:v]scale={scale},crop={cropValue}," +
@@ -167,12 +168,9 @@ namespace Ytb.Services
             }
         }
 
-        public void AddPrefix(string path)
+        public void AddPrefix()
         {
-            if (string.IsNullOrEmpty(path))
-            {
-                path = PathManager.InputOriginVideoPath;
-            }
+            var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             int counter = 1;
@@ -192,12 +190,9 @@ namespace Ytb.Services
             }
         }
 
-        public void RemovePrefix(string path)
+        public void RemovePrefix()
         {
-            if (string.IsNullOrEmpty(path))
-            {
-                path = PathManager.InputOriginVideoPath;
-            }
+            var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             foreach (var file in mp4Files)

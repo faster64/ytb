@@ -46,16 +46,22 @@ namespace Ytb.Services
                 PathManager.ConfigPath,
                 PathManager.ChannelsPath,
                 PathManager.InputPath,
-                PathManager.InputOriginVideoPath,
-                PathManager.InputBackgroundPath,
-                PathManager.OutputsPath,
+                PathManager.InputLineOriginVideoPath,
+                PathManager.InputLineBackgroundPath,
+                PathManager.InputOlderOriginVideoPath,
+                PathManager.InputOlderBackgroundPath,
+                PathManager.OutputLinePath,
+                PathManager.OutputOlderPath,
             };
 
             var filePaths = new List<string>
             {
                 PathManager.ConfigFilePath,
                 PathManager.ChannelsFileHandlePath,
-                PathManager.InputFileDownloadPath
+                PathManager.ChannelsFileDurationPath,
+                PathManager.InputLineFileDownloadPath,
+                PathManager.InputLineFileChromaKeyPath,
+                PathManager.InputOlderFileDownloadPath,
             };
 
             foreach (var path in folderPaths)
@@ -77,8 +83,8 @@ namespace Ytb.Services
                         var config = new Config
                         {
                             ApiKey = "AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus",
-                            AutoGetNewYtDlp = true,
-                            AudioConfig = new AudioRenderConfig
+                            AutoUpdateYtDlp = true,
+                            OlderConfig = new OlderRenderConfig
                             {
                                 CurrentRenderDay = 1,
                                 MaxRenderDays = 5,
@@ -100,7 +106,7 @@ namespace Ytb.Services
                 }
             }
 
-            if (ConfigService.GetConfig().AutoGetNewYtDlp)
+            if (ConfigService.GetConfig().AutoUpdateYtDlp)
             {
                 await UpdateYtDlpAsync();
             }
@@ -109,7 +115,7 @@ namespace Ytb.Services
             Console.WriteLine();
         }
 
-        private static async Task UpdateYtDlpAsync()
+        public static async Task UpdateYtDlpAsync()
         {
             const string ytDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
             const string ytDlpFile = "yt-dlp.exe";
