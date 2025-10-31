@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Ytb.Services
 {
@@ -253,7 +254,10 @@ namespace Ytb.Services
                     i++;
                     if (i >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.WriteLine(logPrefix + e.Data);
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        Console.Write(logPrefix);
+                        Console.ResetColor();
+                        Console.Write(e.Data + "\n");
                         i = 0;
                     }
                 }
@@ -265,7 +269,10 @@ namespace Ytb.Services
                     ei++;
                     if (ei >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.WriteLine(logPrefix + "ERR: " + e.Data);
+                        Console.ForegroundColor = ConsoleColor.Blue;
+                        Console.Write(logPrefix);
+                        Console.ResetColor();
+                        Console.Write("ERR: " + e.Data + "\n");
                         ei = 0;
                     }
                 }

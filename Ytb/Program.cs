@@ -108,7 +108,6 @@ async Task Main()
 
 OptionEnum SelectOption()
 {
-    Console.WriteLine("Quẹo lựa, quẹo lựa: ");
     foreach (var option in options)
     {
         Console.WriteLine((int)option + ". " + option.GetDescription());
@@ -310,14 +309,16 @@ async Task RenderVideosAsync(string type)
                 try
                 {
                     var sw2 = Stopwatch.StartNew();
+
+                    var title = videoTitle.Substring(0, Math.Min(20, videoTitle.Length));
                     switch (type)
                     {
                         case GlobalConstant.LINE:
                             var chromaKey = chromaKeys[index];
-                            await renderService.RenderLineAsync(videoPath, outputVideo, backgroundPath, chromaKey, $"[Kênh {channelName}] ");
+                            await renderService.RenderLineAsync(videoPath, outputVideo, backgroundPath, chromaKey, $"[Kênh {channelName}] {title} ");
                             break;
                         case GlobalConstant.OLDER:
-                            await renderService.RenderOlderAsync(videoPath, outputVideo, backgroundPath, $"[Kênh {channelName}] ");
+                            await renderService.RenderOlderAsync(videoPath, outputVideo, backgroundPath, $"[Kênh {channelName}] {title} ");
                             break;
                     }
                     sw2.Stop();
@@ -326,7 +327,7 @@ async Task RenderVideosAsync(string type)
                     var minutes = Math.Floor(seconds / 60);
                     seconds %= 60;
 
-                    ConsoleService.WriteLineSuccess($"[Kênh {channelName}]: video {videoTitle.Substring(0, Math.Min(20, videoTitle.Length))}: {minutes}m{seconds}s");
+                    ConsoleService.WriteLineSuccess($"[Kênh {channelName}]: video {title}: {minutes}m{seconds}s");
                 }
                 catch (Exception ex)
                 {

@@ -10,16 +10,16 @@ namespace Ytb.Enums
         [Description("Lấy danh sách link video từ kênh")]
         GetVideoUrlsFromChannel = 1,
 
-        [Description("LINE: Tải video")]
+        [Description("     LINE: Tải video")]
         DownloadLineVideo,
 
-        [Description("LINE: Render video")]
+        [Description("     LINE: Render video")]
         RenderLineVideos,
 
-        [Description("LINE: Tạo video nền từ ảnh")]
+        [Description("     LINE: Tạo video nền từ ảnh")]
         CreateLineVideoFromImage,
 
-        [Description("LINE: Kéo dài video nền")]
+        [Description("     LINE: Kéo dài video nền")]
         ExtendLineBackgroundVideo,
 
         [Description("NGƯỜI GIÀ: Tải video")]
