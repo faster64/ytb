@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Ytb;
 using Ytb.Contants;
 using Ytb.Enums;
@@ -77,6 +76,14 @@ async Task Main()
 
         case OptionEnum.CreateOlderVideoFromImage:
             await CreateVideosFromImagesAsync(PathManager.InputOlderBackgroundPath);
+            break;
+
+        case OptionEnum.ExtendLineBackgroundVideo:
+            await ExtendVideosAsync(PathManager.InputLineBackgroundPath);
+            break;
+
+        case OptionEnum.ExtendOlderBackgroundVideo:
+            await ExtendVideosAsync(PathManager.InputOlderBackgroundPath);
             break;
 
         case OptionEnum.CutVideo:
@@ -366,10 +373,17 @@ async Task RenderVideosAsync(string type)
 
 async Task CreateVideosFromImagesAsync(string path)
 {
-    var sw = Stopwatch.StartNew();
-    for (int i = 1; i <= 500; i++)
+    var folders = Directory.EnumerateDirectories(path).OrderBy(x => x.Length).ThenBy(x => x).ToList();
+    if (folders.Count == 0)
     {
-        var folderPath = Path.Combine(path, i.ToString());
+        ConsoleService.WriteLineError("Chưa có kênh");
+        return;
+    }
+
+    var sw = Stopwatch.StartNew();
+    foreach (var folder in folders)
+    {
+        var folderPath = Path.Combine(path, folder);
         if (!Directory.Exists(folderPath))
         {
             continue;
@@ -377,16 +391,52 @@ async Task CreateVideosFromImagesAsync(string path)
 
         var images = Directory.EnumerateFiles(folderPath, "*.jpg").ToList();
 
-        foreach (var imagePath in images)
+        foreach (var inputImage in images)
         {
-            var outputVideo = Path.Combine(folderPath, imagePath.Split(Path.DirectorySeparatorChar).Last().Replace(".jpg", ".mp4"));
-            await new RenderService().CreateVideoFromImage(imagePath, outputVideo);
+            var outputVideo = Path.Combine(folderPath, inputImage.Split(Path.DirectorySeparatorChar).Last().Replace(".jpg", ".mp4"));
+            await new RenderService().CreateVideoFromImage(inputImage, outputVideo);
         }
     }
-
     sw.Stop();
     ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds:N0}s");
 }
+
+async Task ExtendVideosAsync(string path)
+{
+    var folders = Directory.EnumerateDirectories(path).OrderBy(x => x.Length).ThenBy(x => x).ToList();
+    if (folders.Count == 0)
+    {
+        ConsoleService.WriteLineError("Chưa có kênh");
+        return;
+    }
+
+    var sw = Stopwatch.StartNew();
+    foreach (var folder in folders)
+    {
+        var folderPath = Path.Combine(path, folder);
+        if (!Directory.Exists(folderPath))
+        {
+            continue;
+        }
+
+        var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
+
+        foreach (var outputVideo in videos)
+        {
+            var name = Path.GetFileName(outputVideo);
+            var tmp = Path.Combine(folderPath, $"{new Random().Next(1000000)}_{name}");
+
+            File.Move(outputVideo, tmp);
+
+            await new RenderService().ExtendVideo(tmp, outputVideo);
+
+            File.Delete(tmp);
+        }
+    }
+    sw.Stop();
+    ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds:N0}s");
+}
+
 
 async Task TrimVideosAsync(string folderPath)
 {

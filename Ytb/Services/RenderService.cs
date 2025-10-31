@@ -151,14 +151,13 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
-        public async Task CreateVideoFromImage(string imagePath, string outputVideo, int fps = 1, int width = 1280, int height = 720)
+        public async Task CreateVideoFromImage(string inputImage, string outputVideo, int duration = 5400, int fps = 1, int width = 1280, int height = 720)
         {
             var tmp = Path.Combine(Path.GetTempPath(), $"tmp_1s_{Guid.NewGuid():N}.mp4");
-            var args = $"-y -loop 1 -i \"{imagePath}\" -t 1 -vf \"scale={width}:{height},setsar=1\" -r {fps} -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \"{tmp}\"";
+            var args = $"-y -loop 1 -i \"{inputImage}\" -t 1 -vf \"scale={width}:{height},setsar=1\" -r {fps} -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p \"{tmp}\"";
             await RunProcessAsync(args);
 
-            var durationSeconds = 3600;
-            var arguments = $"-y -stream_loop -1 -i \"{tmp}\" -t {durationSeconds} -c copy -movflags +faststart \"{outputVideo}\"";
+            var arguments = $"-y -stream_loop -1 -i \"{tmp}\" -t {duration} -c copy -movflags +faststart \"{outputVideo}\"";
 
             await RunProcessAsync(arguments);
 
@@ -166,6 +165,20 @@ namespace Ytb.Services
             {
                 File.Delete(tmp);
             }
+        }
+
+        public async Task ExtendVideo(string inputVideo, string outputVideo, int duration = 5400)
+        {
+            if (File.Exists(outputVideo))
+                File.Delete(outputVideo);
+
+            var arguments =
+                $"-stream_loop -1 -i \"{inputVideo}\" " +
+                $"-t {duration} " + 
+                "-c copy " +
+                $"\"{outputVideo}\"";
+
+            await RunProcessAsync(arguments);
         }
 
         public void AddPrefix()
