@@ -22,6 +22,12 @@ namespace Ytb.Enums
         [Description("     LINE: Kéo dài video nền")]
         ExtendLineBackgroundVideo,
 
+        [Description("     LINE: Thêm STT vào tên video")]
+        AddPrefixToVideo,
+
+        [Description("     LINE: Xóa STT trong tên video")]
+        RemovePrefixToVideo,
+
         [Description("NGƯỜI GIÀ: Tải video")]
         DownloadOlderVideo,
 
@@ -36,12 +42,6 @@ namespace Ytb.Enums
 
         [Description("Cắt video")]
         CutVideo = 20,
-
-        //[Description("Thêm STT vào tên video")]
-        //AddPrefixToVideo = 21,
-
-        //[Description("Xóa STT trong tên video")]
-        //RemovePrefixToVideo = 22,
 
         [Description("Cập nhật yt-dlp.exe")]
         UpdateYtDlp = 80

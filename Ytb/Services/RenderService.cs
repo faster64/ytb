@@ -37,7 +37,7 @@ namespace Ytb.Services
             var overlayDuration = GetVideoDuration(inputVideo);
 
             var arguments =
-                $"-i \"{backgroundVideoPath}\" " + 
+                $"-i \"{backgroundVideoPath}\" " +
                 $"-i \"{inputVideo}\" " +
                 $"-filter_complex \"[1:v]scale=1280:720," +
                 $"colorkey=0x{chromaKey}:0.3:0.1," +
@@ -175,14 +175,14 @@ namespace Ytb.Services
 
             var arguments =
                 $"-stream_loop -1 -i \"{inputVideo}\" " +
-                $"-t {duration} -an " + 
+                $"-t {duration} -an " +
                 "-c copy " +
                 $"\"{outputVideo}\"";
 
             await RunProcessAsync(arguments);
         }
 
-        public void AddPrefix()
+        public static void AddPrefix()
         {
             var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
@@ -196,7 +196,17 @@ namespace Ytb.Services
                 if (Regex.IsMatch(fileName, @"^NUM\d+_"))
                     continue;
 
-                var newName = $"NUM{counter}_{fileName}";
+                var s = "";
+                if (counter < 10)
+                {
+                    s = "00" + counter;
+                }
+                else if (counter < 100)
+                {
+                    s = "0" + counter;
+                }
+
+                var newName = $"NUM{s}_{fileName}";
                 var newPath = Path.Combine(dir, newName);
 
                 File.Move(file, newPath);
@@ -204,7 +214,7 @@ namespace Ytb.Services
             }
         }
 
-        public void RemovePrefix()
+        public static void RemovePrefix()
         {
             var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
@@ -257,7 +267,7 @@ namespace Ytb.Services
                         Console.ForegroundColor = ConsoleColor.Blue;
                         Console.Write(logPrefix);
                         Console.ResetColor();
-                        Console.Write(e.Data + "\n");
+                        Console.WriteLine(e.Data);
                         i = 0;
                     }
                 }
@@ -272,7 +282,7 @@ namespace Ytb.Services
                         Console.ForegroundColor = ConsoleColor.Blue;
                         Console.Write(logPrefix);
                         Console.ResetColor();
-                        Console.Write("ERR: " + e.Data + "\n");
+                        Console.WriteLine("ERR: " + e.Data);
                         ei = 0;
                     }
                 }

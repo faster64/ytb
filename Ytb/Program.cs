@@ -46,21 +46,15 @@ async Task Main()
             await ChannelService.DownloadVideosAsync(PathManager.InputOlderFileDownloadPath, PathManager.InputOlderOriginVideoPath);
             break;
 
-        //case OptionEnum.AddPrefixToVideo:
-        //    Console.Write("Nhập path: ");
-        //    var path = Console.ReadLine();
+        case OptionEnum.AddPrefixToVideo:
+            RenderService.AddPrefix();
+            Console.WriteLine("Thêm STT thành công");
+            break;
 
-        //    new VideoService().AddPrefix(path);
-        //    Console.WriteLine("Thêm STT thành công");
-        //    break;
-
-        //case OptionEnum.RemovePrefixToVideo:
-        //    Console.Write("Nhập path: ");
-        //    var path2 = Console.ReadLine();
-
-        //    new VideoService().RemovePrefix(path2);
-        //    Console.WriteLine("Xóa STT thành công");
-        //    break;
+        case OptionEnum.RemovePrefixToVideo:
+            RenderService.RemovePrefix();
+            Console.WriteLine("Xóa STT thành công");
+            break;
 
         case OptionEnum.RenderOlderVideos:
             await RenderVideosAsync(GlobalConstant.OLDER);
@@ -256,7 +250,7 @@ async Task RenderVideosAsync(string type)
     }
     #endregion
 
-    ConsoleService.WriteLineSuccess($"Bắt đầu render, ngày hiện tại: {config.CurrentRenderDay}/{config.MaxRenderDays}");
+    ConsoleService.WriteLineSuccess($"[{startTime.ToString("HH:mm:ss")}] Bắt đầu render, ngày hiện tại: {config.CurrentRenderDay}/{config.MaxRenderDays}");
     Console.WriteLine();
 
     var renderService = new RenderService();
@@ -265,7 +259,7 @@ async Task RenderVideosAsync(string type)
     var startIndex = (config.CurrentRenderDay - 1) * videosPerChannel;
     for (int channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
     {
-        var videoPaths = new List<string>();
+        var videoPaths = new Dictionary<string, string>();
         while (videoPaths.Count < videosPerChannel)
         {
             if (startIndex >= originVideos.Count)
@@ -273,7 +267,8 @@ async Task RenderVideosAsync(string type)
                 startIndex = 0;
             }
 
-            videoPaths.Add(originVideos[startIndex++]);
+            var chromaKey = chromaKeys[startIndex];
+            videoPaths.Add(originVideos[startIndex++], chromaKey);
         }
 
         var backgroundFolder = backgroundFolders[channelIndex];
@@ -294,12 +289,13 @@ async Task RenderVideosAsync(string type)
         var backgroundPath = Directory.EnumerateFiles(backgroundFolder, "*.mp4").FirstOrDefault();
         var semaphore = new SemaphoreSlim(config.CCT);
         var tasks = new List<Task>();
-        for (int i = 0; i < videoPaths.Count; i++)
+
+        foreach (var item in videoPaths)
         {
-            var videoPath = videoPaths[i];
+            var videoPath = item.Key;
+            var chromaKey = item.Value;
             var videoTitle = Path.GetFileName(videoPath);
             var outputVideo = Path.Combine(outputPath, videoTitle);
-            var index = i;
 
             Directory.CreateDirectory(outputPath);
 
@@ -314,7 +310,6 @@ async Task RenderVideosAsync(string type)
                     switch (type)
                     {
                         case GlobalConstant.LINE:
-                            var chromaKey = chromaKeys[index];
                             await renderService.RenderLineAsync(videoPath, outputVideo, backgroundPath, chromaKey, $"[Kênh {channelName}] {title} ");
                             break;
                         case GlobalConstant.OLDER:
