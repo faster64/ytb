@@ -175,7 +175,7 @@ namespace Ytb.Services
 
             var arguments =
                 $"-stream_loop -1 -i \"{inputVideo}\" " +
-                $"-t {duration} " + 
+                $"-t {duration} -an " + 
                 "-c copy " +
                 $"\"{outputVideo}\"";
 

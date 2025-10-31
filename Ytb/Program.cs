@@ -236,17 +236,17 @@ async Task RenderVideosAsync(string type)
     }
 
     var originVideos = Directory.EnumerateFiles(originVideoPath, "*.mp4").ToList();
+    var numberOfChannels = backgroundFolders.Count;
+    var videosPerChannel = config.NumberOfVideosPerChannelDaily;
+    var requiredVideoCount = numberOfChannels * videosPerChannel;
+
     var chromaKeys = type == GlobalConstant.LINE ? File.ReadAllLines(PathManager.InputLineFileChromaKeyPath) : new string[] { };
 
-    if (type == GlobalConstant.LINE && originVideos.Count > chromaKeys.Length)
+    if (type == GlobalConstant.LINE && requiredVideoCount > chromaKeys.Length)
     {
         ConsoleService.WriteLineError("Chưa đủ mã màu trong chroma-key.txt");
         return;
     }
-
-    var numberOfChannels = backgroundFolders.Count;
-    var videosPerChannel = config.NumberOfVideosPerChannelDaily;
-    var requiredVideoCount = numberOfChannels * videosPerChannel;
 
     #region Validate resources
     if (originVideos.Count < requiredVideoCount)
