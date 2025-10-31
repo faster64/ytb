@@ -111,7 +111,15 @@ namespace Ytb.Services
                 await UpdateYtDlpAsync();
             }
 
-            Console.WriteLine("GPU: " + RenderService.HasNvidiaGpu());
+            var hasGpu = RenderService.HasNvidiaGpu();
+            if (hasGpu)
+            {
+                ConsoleService.WriteLineSuccess("GPU: YES");
+            }
+            else
+            {
+                ConsoleService.WriteLineError("GPU: NO");
+            }
             Console.WriteLine();
         }
 

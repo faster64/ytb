@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using Ytb.Runtimes.Filters;
 
 namespace Ytb.Enums
 {
@@ -10,40 +11,40 @@ namespace Ytb.Enums
         [Description("Lấy danh sách link video từ kênh")]
         GetVideoUrlsFromChannel = 1,
 
-        [Description("     LINE: Tải video")]
-        DownloadLineVideo,
+        [Description("Cắt video")]
+        CutVideo,
 
-        [Description("     LINE: Render video")]
+        [Description("Cập nhật yt-dlp.exe"), BreakLine(1)]
+        UpdateYtDlp,
+
+        [Description("[LINE]: Tải video")]
+        DownloadLineVideo = 20,
+
+        [Description("[LINE]: Render video")]
         RenderLineVideos,
 
-        [Description("     LINE: Tạo video nền từ ảnh")]
+        [Description("[LINE]: Tạo video nền từ ảnh")]
         CreateLineVideoFromImage,
 
-        [Description("     LINE: Kéo dài video nền")]
+        [Description("[LINE]: Kéo dài video nền")]
         ExtendLineBackgroundVideo,
 
-        [Description("     LINE: Thêm STT vào tên video")]
+        [Description("[LINE]: Thêm STT vào tên video")]
         AddPrefixToVideo,
 
-        [Description("     LINE: Xóa STT trong tên video")]
+        [Description("[LINE]: Xóa STT trong tên video"), BreakLine(1)]
         RemovePrefixToVideo,
 
-        [Description("NGƯỜI GIÀ: Tải video")]
+        [Description("[NGƯỜI GIÀ]: Tải video")]
         DownloadOlderVideo,
 
-        [Description("NGƯỜI GIÀ: Render video ")]
+        [Description("[NGƯỜI GIÀ]: Render video ")]
         RenderOlderVideos,
 
-        [Description("NGƯỜI GIÀ: Tạo video nền từ ảnh")]
+        [Description("[NGƯỜI GIÀ]: Tạo video nền từ ảnh")]
         CreateOlderVideoFromImage,
 
-        [Description("NGƯỜI GIÀ: Kéo dài video nền")]
+        [Description("[NGƯỜI GIÀ]: Kéo dài video nền"), BreakLine(1)]
         ExtendOlderBackgroundVideo,
-
-        [Description("Cắt video")]
-        CutVideo = 20,
-
-        [Description("Cập nhật yt-dlp.exe")]
-        UpdateYtDlp = 80
     }
 }

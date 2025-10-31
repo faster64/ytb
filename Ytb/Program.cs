@@ -1,9 +1,11 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Ytb;
 using Ytb.Contants;
 using Ytb.Enums;
 using Ytb.Extensions;
 using Ytb.Models;
+using Ytb.Runtimes.Filters;
 using Ytb.Services;
 
 await StartupService.InitializeAsync();
@@ -105,9 +107,17 @@ OptionEnum SelectOption()
     foreach (var option in options)
     {
         Console.WriteLine((int)option + ". " + option.GetDescription());
+
+        var memberInfo = option.GetType().GetMember(option.ToString()).FirstOrDefault();
+        var breakLineAttribute = memberInfo?.GetCustomAttributes<BreakLineAttribute>(false).FirstOrDefault();
+        if (breakLineAttribute != null)
+        {
+            for (int i = 0; i < breakLineAttribute.NumberOfBreakLines; i++)
+            {
+                Console.WriteLine();
+            }
+        }
     }
-    Console.WriteLine();
-    Console.WriteLine();
 
     Console.Write("Nhập lựa chọn: ");
     var result = Console.ReadLine();
