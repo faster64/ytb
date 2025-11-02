@@ -104,6 +104,11 @@ async Task Main()
 
 OptionEnum SelectOption()
 {
+    var config = ConfigService.GetConfig();
+    Console.WriteLine($"     [LINE]: Ngày thứ {config.LineConfig.CurrentRenderDay}/{config.LineConfig.MaxRenderDays}");
+    Console.WriteLine($"[NGƯỜI GIÀ]: Ngày thứ {config.OlderConfig.CurrentRenderDay}/{config.OlderConfig.MaxRenderDays}");
+    Console.WriteLine();
+
     foreach (var option in options)
     {
         Console.WriteLine((int)option + ". " + option.GetDescription());
@@ -248,7 +253,7 @@ async Task RenderVideosAsync(string type)
 
     if (type == GlobalConstant.LINE && requiredVideoCount > chromaKeys.Length)
     {
-        ConsoleService.WriteLineError("Chưa đủ mã màu trong chroma-key.txt");
+        ConsoleService.WriteLineError($"Chưa đủ mã màu trong chroma-key.txt {chromaKeys.Length}/{requiredVideoCount}");
         return;
     }
 

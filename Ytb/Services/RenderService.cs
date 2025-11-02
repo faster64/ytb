@@ -34,19 +34,32 @@ namespace Ytb.Services
             }
 
             var overlayDuration = GetVideoDuration(inputVideo);
+            var useGPU = HasNvidiaGpu();
 
-            var arguments =
-                $"-i \"{backgroundVideoPath}\" " +
-                $"-i \"{inputVideo}\" " +
-                $"-filter_complex \"[1:v]scale=1280:720," +
-                $"colorkey=0x{chromaKey}:0.3:0.1," +
-                "format=yuva420p[overlay_video];" +
-                "[0:v][overlay_video]overlay=0:H-h[combined_video];" +
-                "[1:a]volume=1.0[overlay_audio]\" " +
-                "-map \"[combined_video]\" -map \"[overlay_audio]\" " +
-                "-c:v libx264 -c:a aac -preset ultrafast " +
-                $"-t {overlayDuration} " +
-                $"\"{outputVideo}\"";
+            // Base arguments with stream loop for background video
+            var baseArguments = $"-i \"{backgroundVideoPath}\" -i \"{inputVideo}\" ";
+            
+            // Filter complex matches render.js logic for useChromaKey=true
+            var filterComplex = $"-filter_complex \"[1:v]scale=1280:720,colorkey=0x{chromaKey}:0.3:0.1," +
+                "format=yuva420p[overlay_video];[0:v][overlay_video]overlay=0:H-h[combined_video];[1:a]volume=1.0[overlay_audio]\" ";
+            
+            var mapArguments = "-map \"[combined_video]\" -map \"[overlay_audio]\" ";
+            var audioCodec = "-c:a aac ";
+            var durationArgument = $"-t {overlayDuration} ";
+
+            string videoCodecOptions;
+            if (useGPU)
+            {
+                // GPU encoding: h264_nvenc with preset fast and cq 23 (matches render.js)
+                videoCodecOptions = "-c:v h264_nvenc -preset:v fast -cq:v 23 ";
+            }
+            else
+            {
+                // CPU encoding: libx264 with ultrafast preset (matches render.js fallback)
+                videoCodecOptions = "-c:v libx264 -preset ultrafast ";
+            }
+
+            var arguments = baseArguments + filterComplex + mapArguments + videoCodecOptions + audioCodec + durationArgument + $"\"{outputVideo}\"";
 
             await RunProcessAsync(arguments, logPrefix);
         }
