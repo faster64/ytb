@@ -265,8 +265,10 @@ async Task RenderVideosAsync(string type)
 
     var renderService = new RenderService();
     var random = new Random();
-
+    var semaphore = new SemaphoreSlim(config.CCT);
+    var tasks = new List<Task>();
     var startIndex = (config.CurrentRenderDay - 1) * videosPerChannel;
+
     for (int channelIndex = 0; channelIndex < numberOfChannels; channelIndex++)
     {
         var videoPaths = new Dictionary<string, string>();
@@ -297,9 +299,6 @@ async Task RenderVideosAsync(string type)
         }
 
         var backgroundPath = Directory.EnumerateFiles(backgroundFolder, "*.mp4").FirstOrDefault();
-        var semaphore = new SemaphoreSlim(config.CCT);
-        var tasks = new List<Task>();
-
         foreach (var item in videoPaths)
         {
             var videoPath = item.Key;
@@ -346,11 +345,11 @@ async Task RenderVideosAsync(string type)
 
             tasks.Add(task);
         }
+    }
 
-        if (tasks.Count > 0)
-        {
-            await Task.WhenAll(tasks);
-        }
+    if (tasks.Count > 0)
+    {
+        await Task.WhenAll(tasks);
     }
 
     if (config.CurrentRenderDay >= config.MaxRenderDays)
