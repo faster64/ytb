@@ -447,7 +447,6 @@ async Task ExtendVideosAsync(string path)
     ConsoleService.WriteLineSuccess($"Hoàn thành sau: {sw.Elapsed.TotalSeconds:N0}s");
 }
 
-
 async Task TrimVideosAsync(string folderPath)
 {
     var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();

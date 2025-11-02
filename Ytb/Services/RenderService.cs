@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using FFMpegCore;
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 namespace Ytb.Services
@@ -36,32 +37,34 @@ namespace Ytb.Services
             var overlayDuration = GetVideoDuration(inputVideo);
             var useGPU = HasNvidiaGpu();
 
-            // Base arguments with stream loop for background video
-            var baseArguments = $"-i \"{backgroundVideoPath}\" -i \"{inputVideo}\" ";
-            
-            // Filter complex matches render.js logic for useChromaKey=true
-            var filterComplex = $"-filter_complex \"[1:v]scale=1280:720,colorkey=0x{chromaKey}:0.3:0.1," +
-                "format=yuva420p[overlay_video];[0:v][overlay_video]overlay=0:H-h[combined_video];[1:a]volume=1.0[overlay_audio]\" ";
-            
-            var mapArguments = "-map \"[combined_video]\" -map \"[overlay_audio]\" ";
-            var audioCodec = "-c:a aac ";
-            var durationArgument = $"-t {overlayDuration} ";
+            // Use FFMpegCore API similar to fluent-ffmpeg in render.js
+            // Build filter complex matching render.js: [1:v]scale=1280:720,colorkey=0x{color}:0.3:0.1,format=yuva420p[overlay_video]
+            var filterComplex = $"[1:v]scale=1280:720,colorkey=0x{chromaKey}:0.3:0.0," +
+                               $"format=yuva420p[overlay_video];[0:v][overlay_video]overlay=0:H-h[combined_video];[1:a]volume=1.0[overlay_audio]";
 
-            string videoCodecOptions;
+            var mediaInfo = await FFProbe.AnalyseAsync(inputVideo);
+            var duration = mediaInfo.Duration;
+
+            // Build command arguments manually to have full control and progress monitoring
+            // This matches render.js filter complex and options
+            var arguments = $"-i \"{backgroundVideoPath}\" -i \"{inputVideo}\" " +
+                           $"-filter_complex \"{filterComplex}\" -map \"[combined_video]\" -map \"[overlay_audio]\" -t {duration.TotalSeconds} -c:a aac ";
+
             if (useGPU)
             {
                 // GPU encoding: h264_nvenc with preset fast and cq 23 (matches render.js)
-                videoCodecOptions = "-c:v h264_nvenc -preset:v fast -cq:v 23 ";
+                arguments += "-c:v h264_nvenc -preset:v fast -cq:v 23 ";
             }
             else
             {
                 // CPU encoding: libx264 with ultrafast preset (matches render.js fallback)
-                videoCodecOptions = "-c:v libx264 -preset ultrafast ";
+                arguments += "-c:v libx264 -preset ultrafast ";
             }
 
-            var arguments = baseArguments + filterComplex + mapArguments + videoCodecOptions + audioCodec + durationArgument + $"\"{outputVideo}\"";
+            arguments += $"\"{outputVideo}\"";
 
-            await RunProcessAsync(arguments, logPrefix);
+            // Execute with progress monitoring
+            await ExecuteWithProgressAsync(arguments, overlayDuration, logPrefix);
         }
 
         public async Task RenderOlderAsync(string inputVideo, string outputVideo, string backgroundVideoPath, string logPrefix = "")
@@ -248,6 +251,84 @@ namespace Ytb.Services
         private string ToFfmpegTime(TimeSpan ts)
         {
             return $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}.{ts.Milliseconds:D3}";
+        }
+
+        private async Task ExecuteWithProgressAsync(string arguments, double duration, string logPrefix = "")
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = _ffmpegPath,
+                    Arguments = arguments,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            // Regex to parse time from ffmpeg output: time=00:00:12.34 or time=12.34
+            var timeRegex = new Regex(@"time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})", RegexOptions.Compiled);
+            var timeRegexSimple = new Regex(@"time=(\d+\.?\d*)", RegexOptions.Compiled);
+            var lastPercent = -1;
+
+            process.ErrorDataReceived += (s, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    // Parse time from ffmpeg output
+                    var match = timeRegex.Match(e.Data);
+                    double currentTime = 0;
+
+                    if (match.Success)
+                    {
+                        var hours = int.Parse(match.Groups[1].Value);
+                        var minutes = int.Parse(match.Groups[2].Value);
+                        var seconds = int.Parse(match.Groups[3].Value);
+                        var milliseconds = int.Parse(match.Groups[4].Value);
+                        currentTime = hours * 3600 + minutes * 60 + seconds + milliseconds / 100.0;
+                    }
+                    else
+                    {
+                        var simpleMatch = timeRegexSimple.Match(e.Data);
+                        if (simpleMatch.Success)
+                        {
+                            double.TryParse(simpleMatch.Groups[1].Value, out currentTime);
+                        }
+                    }
+
+                    // Calculate percentage
+                    if (currentTime > 0 && duration > 0)
+                    {
+                        var percent = (int)Math.Min(100, (currentTime / duration) * 100);
+
+                        // Only update if percentage changed to avoid too frequent updates
+                        if (percent != lastPercent)
+                        {
+                            lastPercent = percent;
+
+                            // Use \r to overwrite the same line
+                            Console.ForegroundColor = ConsoleColor.Blue;
+                            Console.Write(logPrefix);
+                            Console.ResetColor();
+                            Console.Write($"Progress: {percent}% ({currentTime:F1}s / {duration:F1}s)\r");
+                        }
+                    }
+                }
+            };
+
+            process.Start();
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
+            await process.WaitForExitAsync();
+
+            // Clear the progress line and print completion
+            Console.Write(new string(' ', Console.BufferWidth - 1) + "\r");
+            Console.ForegroundColor = ConsoleColor.Blue;
+            Console.Write(logPrefix);
+            Console.ResetColor();
+            Console.WriteLine($"Complete: 100%");
         }
 
         private async Task RunProcessAsync(string arguments, string logPrefix = "")
