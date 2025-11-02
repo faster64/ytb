@@ -40,7 +40,15 @@ namespace Ytb.Services
 
             // Use FFMpegCore API similar to fluent-ffmpeg in render.js
             // Build filter complex matching render.js: [1:v]scale=1280:720,colorkey=0x{color}:0.3:0.1,format=yuva420p[overlay_video]
-            var filterComplex = $"[1:v]scale=1280:720,colorkey=0x{chromaKey}:0.3:0.0," +
+
+            var sb = "0.3:0.0";
+            if (chromaKey == "2B4052")
+            {
+                ConsoleService.WriteLineError(logPrefix);
+                sb = "0.2:0.0";
+            }
+
+            var filterComplex = $"[1:v]scale=1280:720,colorkey=0x{chromaKey}:{sb}," +
                                $"format=yuva420p[overlay_video];[0:v][overlay_video]overlay=0:H-h[combined_video];[1:a]volume=1.0[overlay_audio]";
 
             var mediaInfo = await FFProbe.AnalyseAsync(inputVideo);
