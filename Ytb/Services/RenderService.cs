@@ -8,6 +8,7 @@ namespace Ytb.Services
     {
         public static string _ffmpegPath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffmpeg.exe");
         public static string _ffprobePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", "ffprobe.exe");
+        private static bool? _hasGpu = null;
 
         public static double GetVideoDuration(string filePath)
         {
@@ -391,6 +392,11 @@ namespace Ytb.Services
         {
             try
             {
+                if (_hasGpu.HasValue)
+                {
+                    return _hasGpu.Value;
+                }
+
                 var process = new Process
                 {
                     StartInfo = new ProcessStartInfo
@@ -406,12 +412,14 @@ namespace Ytb.Services
                 string output = process.StandardOutput.ReadToEnd();
                 process.WaitForExit();
 
-                return !string.IsNullOrWhiteSpace(output) && output.Contains("GPU");
+                _hasGpu = !string.IsNullOrWhiteSpace(output) && output.Contains("GPU");
             }
             catch
             {
-                return false;
+                _hasGpu = false;
             }
+
+            return _hasGpu.Value;
         }
     }
 }
