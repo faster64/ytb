@@ -277,7 +277,7 @@ async Task RenderVideosAsync(string type)
                 startIndex = 0;
             }
 
-            var chromaKey = chromaKeys[startIndex];
+            var chromaKey = type == GlobalConstant.LINE ? chromaKeys[startIndex] : "";
             videoPaths.Add(originVideos[startIndex++], chromaKey);
         }
 
