@@ -206,9 +206,8 @@ namespace Ytb.Services
             await RunProcessAsync(arguments);
         }
 
-        public static void AddPrefix()
+        public static void AddPrefix(string path)
         {
-            var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             int counter = 1;
@@ -238,9 +237,8 @@ namespace Ytb.Services
             }
         }
 
-        public static void RemovePrefix()
+        public static void RemovePrefix(string path)
         {
-            var path = PathManager.InputLineOriginVideoPath;
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             foreach (var file in mp4Files)
@@ -366,9 +364,7 @@ namespace Ytb.Services
                     i++;
                     if (i >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.ForegroundColor = ConsoleColor.Blue;
                         Console.Write(logPrefix);
-                        Console.ResetColor();
                         Console.WriteLine(e.Data);
                         i = 0;
                     }
@@ -381,9 +377,7 @@ namespace Ytb.Services
                     ei++;
                     if (ei >= li && !string.IsNullOrEmpty(e.Data) && e.Data.Contains("time="))
                     {
-                        Console.ForegroundColor = ConsoleColor.Blue;
                         Console.Write(logPrefix);
-                        Console.ResetColor();
                         Console.WriteLine("ERR: " + e.Data);
                         ei = 0;
                     }

@@ -7,7 +7,7 @@ namespace Ytb.Services
 {
     public class ChannelService
     {
-        public static async Task GetVideoUrlsAsync(string handle, int minMinuteDuration = 10)
+        public static async Task GetVideoUrlsAsync(string handle, int minMinuteDuration = 20)
         {
             handle = handle.Trim();
 
@@ -131,16 +131,12 @@ namespace Ytb.Services
             var sw = Stopwatch.StartNew();
             Console.WriteLine($"Bắt đầu tải {urls.Count()} videos...");
 
-            if (Directory.Exists(outputDir))
+            if (!Directory.Exists(outputDir))
             {
-                Console.WriteLine("Đang xóa thư mục video-goc cũ...");
-                Directory.Delete(outputDir, recursive: true);
+                Directory.CreateDirectory(outputDir);
             }
 
-            Directory.CreateDirectory(outputDir);
-
             var chunks = urls.Chunk(10);
-
             foreach (var chunk in chunks)
             {
                 var tasks = new List<Task>();
@@ -149,13 +145,16 @@ namespace Ytb.Services
                     if (string.IsNullOrWhiteSpace(url))
                         continue;
 
-                    tasks.Add(Task.Run(async () =>
+                    tasks.Add(Task.Run(() =>
                     {
                         var processFileName = Path.Combine(Directory.GetCurrentDirectory(), "yt-dlp.exe");
                         //var cookiePath = Path.Combine(Directory.GetCurrentDirectory(), "cookies.txt");
 
                         //var arguments = $"--cookies \"C:\\temp\\youtube_cookies.txt\" -f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg \"{url.Trim()}\"";
-                        var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg {url.Trim()}";
+                        
+                        // Sử dụng --no-overwrites và --download-archive để bỏ qua video đã tải trước đó
+                        var archiveFile = Path.Combine(outputDir, "downloaded.txt");
+                        var arguments = $"-f \"bestvideo+bestaudio/best\" --merge-output-format mp4 -o \"{outputDir}\\%(title)s.%(ext)s\" --write-thumbnail --convert-thumbnails jpg --no-overwrites --download-archive \"{archiveFile}\" {url.Trim()}";
                         var process = new Process
                         {
                             StartInfo = new ProcessStartInfo
@@ -166,8 +165,7 @@ namespace Ytb.Services
                                 RedirectStandardOutput = true,
                                 RedirectStandardError = true,
                                 CreateNoWindow = true,
-                                StandardOutputEncoding = System.Text.Encoding.UTF8,
-
+                                StandardOutputEncoding = Encoding.UTF8,
                             }
                         };
 

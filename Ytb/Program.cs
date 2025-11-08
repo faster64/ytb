@@ -49,12 +49,18 @@ async Task Main()
             break;
 
         case OptionEnum.AddPrefixToVideo:
-            RenderService.AddPrefix();
+            Console.Write("Nhập đường dẫn: ");
+            var path = Console.ReadLine();
+
+            RenderService.AddPrefix(path);
             Console.WriteLine("Thêm STT thành công");
             break;
 
         case OptionEnum.RemovePrefixToVideo:
-            RenderService.RemovePrefix();
+            Console.Write("Nhập đường dẫn: ");
+            var path2 = Console.ReadLine();
+
+            RenderService.RemovePrefix(path2);
             Console.WriteLine("Xóa STT thành công");
             break;
 
@@ -156,7 +162,7 @@ async Task GetVideoUrlsFromChannelAsync()
 
     Console.Clear();
     var durationLines = await File.ReadAllLinesAsync(PathManager.ChannelsFileDurationPath);
-    var duration = int.Parse(durationLines.FirstOrDefault() ?? "10");
+    var duration = int.Parse(durationLines.FirstOrDefault() ?? "20");
 
     if (specialCharChoice == "1")
     {
@@ -454,7 +460,7 @@ async Task TrimVideosAsync(string folderPath)
     {
         var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
         var outputVideo = Path.Combine(folderPath, "cutted_" + videoTitle + ".mp4");
-        await new RenderService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(60));
+        await new RenderService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(30));
 
         File.Delete(videoPath);
         File.Move(outputVideo, videoPath);
