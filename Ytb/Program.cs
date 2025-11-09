@@ -10,6 +10,8 @@ using Ytb.Services;
 
 await StartupService.InitializeAsync();
 
+Test();
+
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 
 await Main();
@@ -475,7 +477,24 @@ async Task TrimVideosAsync(string folderPath)
     ConsoleService.WriteLineSuccess("Ok!");
 }
 
+//void Test()
+//{
+//    var videos = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.mp4").Select(x => Path.GetFileNameWithoutExtension(x)).ToList();
+//    var images = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.jpg").Select(x => Path.GetFileNameWithoutExtension(x)).ToList();
 
+//    var videos2 = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath2, "*.mp4").Select(x => Path.GetFileNameWithoutExtension(x).Replace("   ", " ")).ToList();
+//    var images2 = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath2, "*.jpg").Select(x => Path.GetFileNameWithoutExtension(x).Replace("   ", " ")).ToList();
+
+//    for (int i = 0; i < 50; i++)
+//    {
+//        if (videos[i] != videos2[i])
+//        {
+//            Console.WriteLine(videos[i]);
+//            Console.WriteLine(videos2[i]);
+//            ConsoleService.WriteLineError("--------------------");
+//        }
+//    }
+//}
 
 
 

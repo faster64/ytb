@@ -227,7 +227,7 @@ namespace Ytb.Services
             cleaned = cleaned.TrimEnd('.', ' ');
 
             var forbiddenWords = new Dictionary<string, string> {
-                {"…", "..."},
+                {"…", " "},
                 {"？", " "}
             };
             foreach (var word in forbiddenWords)
