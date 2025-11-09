@@ -82,6 +82,7 @@ namespace Ytb.Services
                     {
                         var config = new Config
                         {
+                            CutDuration = 15,
                             ApiKey = "AIzaSyDZTsPGvG0u5du3t7YGueGgnNi7IiulMus",
                             AutoUpdateYtDlp = true,
                             OlderConfig = new OlderRenderConfig

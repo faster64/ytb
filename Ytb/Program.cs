@@ -66,6 +66,7 @@ async Task Main()
 
         case OptionEnum.RenderOlderVideos:
             await RenderVideosAsync(GlobalConstant.OLDER);
+            await RenderVideosAsync(GlobalConstant.LINE);
             break;
 
         case OptionEnum.RenderLineVideos:
@@ -455,12 +456,17 @@ async Task ExtendVideosAsync(string path)
 
 async Task TrimVideosAsync(string folderPath)
 {
+    if (string.IsNullOrEmpty(folderPath))
+    {
+        folderPath = PathManager.InputLineOriginVideoPath;
+    }
+
     var videos = Directory.EnumerateFiles(folderPath, "*.mp4").ToList();
     foreach (var videoPath in videos)
     {
         var videoTitle = videoPath.Split(Path.DirectorySeparatorChar).Last().Replace(".mp4", "");
         var outputVideo = Path.Combine(folderPath, "cutted_" + videoTitle + ".mp4");
-        await new RenderService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(30));
+        await new RenderService().TrimVideoAsync(videoPath, outputVideo, TimeSpan.FromSeconds(0), TimeSpan.FromSeconds(ConfigService.GetConfig().CutDuration));
 
         File.Delete(videoPath);
         File.Move(outputVideo, videoPath);

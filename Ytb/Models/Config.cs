@@ -2,6 +2,8 @@
 {
     public class Config
     {
+        public int CutDuration { get; set; }
+
         public string ApiKey { get; set; }
 
         public bool AutoUpdateYtDlp { get; set; }

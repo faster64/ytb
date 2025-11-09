@@ -208,6 +208,11 @@ namespace Ytb.Services
 
         public static void AddPrefix(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = PathManager.InputLineOriginVideoPath;
+            }
+
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             int counter = 1;
@@ -239,6 +244,11 @@ namespace Ytb.Services
 
         public static void RemovePrefix(string path)
         {
+            if (string.IsNullOrEmpty(path))
+            {
+                path = PathManager.InputLineOriginVideoPath;
+            }
+
             var mp4Files = Directory.EnumerateFiles(path, "*.mp4").ToList();
 
             foreach (var file in mp4Files)
