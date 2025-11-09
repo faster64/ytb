@@ -10,7 +10,6 @@ using Ytb.Services;
 
 await StartupService.InitializeAsync();
 
-Test();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 
