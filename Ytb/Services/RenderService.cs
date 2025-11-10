@@ -44,7 +44,6 @@ namespace Ytb.Services
             var sb = "0.3:0.0";
             if (chromaKey == "2B4052")
             {
-                ConsoleService.WriteLineError(logPrefix);
                 sb = "0.2:0.0";
             }
 
