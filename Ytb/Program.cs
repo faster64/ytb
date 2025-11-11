@@ -369,10 +369,6 @@ async Task RenderVideosAsync(string type)
     {
         config.CurrentRenderDay = 1;
         ConfigService.SaveConfig(ConfigService.GetConfig());
-
-        Directory.Delete(PathManager.InputLineOriginVideoPath, recursive: true);
-        Directory.CreateDirectory(PathManager.InputLineOriginVideoPath);
-
         ConsoleService.WriteLineError("Đã render xong hết video phase này. Bạn hãy tải video mới!");
     }
     else
