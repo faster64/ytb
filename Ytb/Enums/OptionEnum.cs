@@ -29,6 +29,9 @@ namespace Ytb.Enums
         [Description("[LINE]: Kéo dài video nền")]
         ExtendLineBackgroundVideo,
 
+        [Description("[LINE]: Đổi màu thumbnail")]
+        ChangeThumbnailColor,
+
         [Description("[LINE]: Thêm STT vào tên video")]
         AddPrefixToVideo,
 

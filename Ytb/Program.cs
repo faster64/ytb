@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+﻿using FFmpegArgs.Cores.Interfaces;
+using System.Diagnostics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Ytb;
 using Ytb.Contants;
 using Ytb.Enums;
@@ -63,6 +65,61 @@ async Task Main()
 
             RenderService.RemovePrefix(path2);
             Console.WriteLine("Xóa STT thành công");
+            break;
+
+        case OptionEnum.ChangeThumbnailColor:
+            ConsoleService.WriteLineSuccess("Hồng hồng: #FFC0CB #FFC0CB");
+            ConsoleService.WriteLineSuccess("Tím rực: #A100FF #FBC2EB");
+            ConsoleService.WriteLineSuccess("Xanh điện: #007CF0 #00DFD8");
+            ConsoleService.WriteLineSuccess("Hồng neon: #FF5EDF #FFB6FF");
+            ConsoleService.WriteLineSuccess("Cam cháy: #FF7F50 #FFB347");
+            ConsoleService.WriteLineSuccess("Đỏ năng lượng: #FF4B4B #FFD93D");
+
+            Console.WriteLine();
+            Console.Write("Nhập gradients: ");
+            var gradients = Console.ReadLine()?.Trim();
+            var match = Regex.Match(gradients, @"^(\#[\w\d]{6}) (\#[\w\d]{6})$");
+            var thumbnails = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.jpg").ToList();
+
+            var bakFolder = Path.Combine(PathManager.InputLineOriginVideoPath, "thumbnail-bak");
+            Directory.CreateDirectory(bakFolder);
+            foreach (var thumbnail in thumbnails)
+            {
+                var des = Path.Combine(Path.GetDirectoryName(thumbnail), "thumbnail-bak", Path.GetFileName(thumbnail));
+                if (!File.Exists(des))
+                {
+                    File.Copy(thumbnail, des);
+                }
+            }
+
+            string gradientStart = null;
+            string gradientEnd = null;
+
+            if (match.Success)
+            {
+                gradientStart = match.Groups[1].Value;
+                gradientEnd = match.Groups[2].Value;
+            }
+
+            ConsoleService.WriteLineWarning("Đang thay đổi...");
+            foreach (var thumbnail in thumbnails)
+            {
+                var tmp = Path.Combine(Path.GetDirectoryName(thumbnail), "tmp_tmp.jpg");
+                try
+                {
+                    File.Copy(thumbnail, tmp);
+                    RenderService.ReplaceBackgroundWithGradient(tmp, thumbnail, gradientStart: gradientStart, gradientEnd: gradientEnd);
+                }
+                finally
+                {
+                    if (File.Exists(tmp))
+                    {
+                        File.Delete(tmp);
+                    }
+                }
+            }
+
+            ConsoleService.WriteLineSuccess("Thay đổi màu thumbnail thành công");
             break;
 
         case OptionEnum.RenderOlderVideos:

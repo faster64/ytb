@@ -1,6 +1,8 @@
 ﻿using FFMpegCore;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Ytb.Services
 {
@@ -431,6 +433,140 @@ namespace Ytb.Services
             }
 
             return _hasGpu.Value;
+        }
+
+        /// <summary>
+        /// Đổi màu nền của ảnh từ màu cụ thể sang gradient hồng
+        /// </summary>
+        /// <param name="inputPath">Đường dẫn file ảnh đầu vào</param>
+        /// <param name="outputPath">Đường dẫn file ảnh đầu ra</param>
+        /// <param name="sourceColor">Màu nền cần thay thế (mặc định #7A97C1)</param>
+        /// <param name="tolerance">Độ sai lệch màu cho phép (0-255, mặc định 20)</param>
+        /// <param name="gradientStart">Màu bắt đầu gradient (mặc định hồng nhạt #FFC0CB)</param>
+        /// <param name="gradientEnd">Màu kết thúc gradient (mặc định hồng đậm #FF69B4)</param>
+        /// <param name="gradientDirection">Hướng gradient: "vertical" (dọc) hoặc "horizontal" (ngang), mặc định "vertical"</param>
+        public static void ReplaceBackgroundWithGradient(
+            string inputPath, 
+            string outputPath,
+            string? sourceColor = null,
+            int tolerance = 70,
+            string? gradientStart = null,
+            string? gradientEnd = null,
+            string gradientDirection = "vertical")
+        {
+            if (!File.Exists(inputPath))
+            {
+                throw new FileNotFoundException($"Không tìm thấy file: {inputPath}");
+            }
+
+            // Màu mặc định
+            var defaultSourceColor = Color.FromArgb(0x7A, 0x97, 0xC1); // #7A97C1
+            var defaultGradientStart = ColorTranslator.FromHtml("#FFC0CB"); // hồng nhạt
+            var defaultGradientEnd = ColorTranslator.FromHtml("#FF69B4");   // hồng đậm
+
+            var sourceColorValue = sourceColor != null 
+                ? ColorTranslator.FromHtml(sourceColor) 
+                : defaultSourceColor;
+            
+            var gradientStartColor = gradientStart != null 
+                ? ColorTranslator.FromHtml(gradientStart) 
+                : defaultGradientStart;
+            
+            var gradientEndColor = gradientEnd != null 
+                ? ColorTranslator.FromHtml(gradientEnd) 
+                : defaultGradientEnd;
+
+            using (var bitmap = new Bitmap(inputPath))
+            {
+                // Sử dụng LockBits để tăng hiệu suất thay vì GetPixel/SetPixel
+                var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+                var bitmapData = bitmap.LockBits(rect, ImageLockMode.ReadWrite, bitmap.PixelFormat);
+                
+                var bytesPerPixel = Image.GetPixelFormatSize(bitmap.PixelFormat) / 8;
+                var byteCount = bitmapData.Stride * bitmap.Height;
+                var pixels = new byte[byteCount];
+                
+                // Copy dữ liệu pixel vào mảng
+                System.Runtime.InteropServices.Marshal.Copy(bitmapData.Scan0, pixels, 0, byteCount);
+
+                // Xử lý từng pixel
+                for (int y = 0; y < bitmap.Height; y++)
+                {
+                    for (int x = 0; x < bitmap.Width; x++)
+                    {
+                        var index = (y * bitmapData.Stride) + (x * bytesPerPixel);
+                        
+                        // Đọc màu pixel hiện tại (BGRA format)
+                        var b = pixels[index];
+                        var g = pixels[index + 1];
+                        var r = pixels[index + 2];
+                        var a = bytesPerPixel == 4 ? pixels[index + 3] : (byte)255;
+                        
+                        var pixelColor = Color.FromArgb(a, r, g, b);
+                        
+                        // Kiểm tra nếu màu gần với màu nền cần thay thế
+                        if (IsColorClose(pixelColor, sourceColorValue, tolerance))
+                        {
+                            // Tính màu gradient dựa trên hướng
+                            float ratio;
+                            if (gradientDirection.ToLower() == "horizontal")
+                            {
+                                ratio = (float)x / bitmap.Width; // Gradient theo chiều ngang
+                            }
+                            else
+                            {
+                                ratio = (float)y / bitmap.Height; // Gradient theo chiều dọc (mặc định)
+                            }
+
+                            var gradientColor = Color.FromArgb(
+                                (int)(gradientStartColor.R + (gradientEndColor.R - gradientStartColor.R) * ratio),
+                                (int)(gradientStartColor.G + (gradientEndColor.G - gradientStartColor.G) * ratio),
+                                (int)(gradientStartColor.B + (gradientEndColor.B - gradientStartColor.B) * ratio)
+                            );
+
+                            // Thay thế bằng màu gradient
+                            pixels[index] = gradientColor.B;
+                            pixels[index + 1] = gradientColor.G;
+                            pixels[index + 2] = gradientColor.R;
+                            if (bytesPerPixel == 4)
+                            {
+                                pixels[index + 3] = gradientColor.A;
+                            }
+                        }
+                    }
+                }
+
+                // Copy dữ liệu pixel trở lại bitmap
+                System.Runtime.InteropServices.Marshal.Copy(pixels, 0, bitmapData.Scan0, byteCount);
+                bitmap.UnlockBits(bitmapData);
+
+                // Lưu file với format giữ nguyên hoặc PNG
+                var extension = Path.GetExtension(outputPath).ToLower();
+                ImageFormat format = extension switch
+                {
+                    ".jpg" or ".jpeg" => ImageFormat.Jpeg,
+                    ".png" => ImageFormat.Png,
+                    ".bmp" => ImageFormat.Bmp,
+                    ".gif" => ImageFormat.Gif,
+                    _ => ImageFormat.Png
+                };
+
+                bitmap.Save(outputPath, format);
+            }
+        }
+
+        /// <summary>
+        /// So sánh 2 màu cho phép sai lệch một chút
+        /// </summary>
+        /// <param name="a">Màu thứ nhất</param>
+        /// <param name="b">Màu thứ hai</param>
+        /// <param name="tolerance">Độ sai lệch cho phép (0-255)</param>
+        /// <returns>True nếu 2 màu gần nhau trong phạm vi tolerance</returns>
+        private static bool IsColorClose(Color a, Color b, int tolerance = 20)
+        {
+            return Math.Abs(a.R - b.R) <= tolerance &&
+                   Math.Abs(a.G - b.G) <= tolerance &&
+                   Math.Abs(a.B - b.B) <= tolerance;
         }
     }
 }
