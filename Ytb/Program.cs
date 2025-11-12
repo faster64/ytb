@@ -1,5 +1,4 @@
-﻿using FFmpegArgs.Cores.Interfaces;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Ytb;
@@ -12,28 +11,18 @@ using Ytb.Services;
 
 await StartupService.InitializeAsync();
 
+// Test();
 
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 
 await Main();
+
 async Task Main()
 {
     var choice = SelectOption();
 
     switch (choice)
     {
-        //case OptionEnum.UpdateAPIKey:
-        //    var apiKey = "";
-        //    while (string.IsNullOrWhiteSpace(apiKey))
-        //    {
-        //        Console.Write("Nhập API Key mới: ");
-        //        apiKey = Console.ReadLine() ?? "";
-        //    }
-        //    new ConfigService().SetApiKey(apiKey);
-
-        //    Console.WriteLine("Cập nhật API Key thành công.");
-        //    break;
-
         case OptionEnum.GetVideoUrlsFromChannel:
             await GetVideoUrlsFromChannelAsync();
             break;
@@ -68,58 +57,7 @@ async Task Main()
             break;
 
         case OptionEnum.ChangeThumbnailColor:
-            ConsoleService.WriteLineSuccess("Hồng hồng: #FFC0CB #FFC0CB");
-            ConsoleService.WriteLineSuccess("Tím rực: #A100FF #FBC2EB");
-            ConsoleService.WriteLineSuccess("Xanh điện: #007CF0 #00DFD8");
-            ConsoleService.WriteLineSuccess("Hồng neon: #FF5EDF #FFB6FF");
-            ConsoleService.WriteLineSuccess("Cam cháy: #FF7F50 #FFB347");
-            ConsoleService.WriteLineSuccess("Đỏ năng lượng: #FF4B4B #FFD93D");
-
-            Console.WriteLine();
-            Console.Write("Nhập gradients: ");
-            var gradients = Console.ReadLine()?.Trim();
-            var match = Regex.Match(gradients, @"^(\#[\w\d]{6}) (\#[\w\d]{6})$");
-            var thumbnails = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.jpg").ToList();
-
-            var bakFolder = Path.Combine(PathManager.InputLineOriginVideoPath, "thumbnail-bak");
-            Directory.CreateDirectory(bakFolder);
-            foreach (var thumbnail in thumbnails)
-            {
-                var des = Path.Combine(Path.GetDirectoryName(thumbnail), "thumbnail-bak", Path.GetFileName(thumbnail));
-                if (!File.Exists(des))
-                {
-                    File.Copy(thumbnail, des);
-                }
-            }
-
-            string gradientStart = null;
-            string gradientEnd = null;
-
-            if (match.Success)
-            {
-                gradientStart = match.Groups[1].Value;
-                gradientEnd = match.Groups[2].Value;
-            }
-
-            ConsoleService.WriteLineWarning("Đang thay đổi...");
-            foreach (var thumbnail in thumbnails)
-            {
-                var tmp = Path.Combine(Path.GetDirectoryName(thumbnail), "tmp_tmp.jpg");
-                try
-                {
-                    File.Copy(thumbnail, tmp);
-                    RenderService.ReplaceBackgroundWithGradient(tmp, thumbnail, gradientStart: gradientStart, gradientEnd: gradientEnd);
-                }
-                finally
-                {
-                    if (File.Exists(tmp))
-                    {
-                        File.Delete(tmp);
-                    }
-                }
-            }
-
-            ConsoleService.WriteLineSuccess("Thay đổi màu thumbnail thành công");
+            ChangeThumbnailColor();
             break;
 
         case OptionEnum.RenderOlderVideos:
@@ -529,32 +467,112 @@ async Task TrimVideosAsync(string folderPath)
     ConsoleService.WriteLineSuccess("Ok!");
 }
 
+void ChangeThumbnailColor()
+{
+    ConsoleService.WriteLineSuccess("Hồng hồng: #FFC0CB #FFC0CB");
+    ConsoleService.WriteLineSuccess("Tím rực: #A100FF #FBC2EB");
+    ConsoleService.WriteLineSuccess("Xanh điện: #007CF0 #00DFD8");
+    ConsoleService.WriteLineSuccess("Hồng neon: #FF5EDF #FFB6FF");
+    ConsoleService.WriteLineSuccess("Cam cháy: #FF7F50 #FFB347");
+    ConsoleService.WriteLineSuccess("Đỏ năng lượng: #FF4B4B #FFD93D");
+
+    Console.WriteLine();
+    Console.Write("Nhập gradients: ");
+    var gradients = Console.ReadLine()?.Trim();
+    var match = Regex.Match(gradients, @"^(\#[\w\d]{6})\s+(\#[\w\d]{6})$");
+    var thumbnails = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.jpg").ToList();
+
+    var bakFolder = Path.Combine(PathManager.InputLineOriginVideoPath, "thumbnail-bak");
+    Directory.CreateDirectory(bakFolder);
+    foreach (var thumbnail in thumbnails)
+    {
+        var des = Path.Combine(Path.GetDirectoryName(thumbnail), "thumbnail-bak", Path.GetFileName(thumbnail));
+        if (!File.Exists(des))
+        {
+            File.Copy(thumbnail, des);
+        }
+    }
+
+    string gradientStart = null;
+    string gradientEnd = null;
+
+    if (match.Success)
+    {
+        gradientStart = match.Groups[1].Value;
+        gradientEnd = match.Groups[2].Value;
+    }
+    else
+    {
+        match = Regex.Match(gradients, @"^(\#[\w\d]{6})$");
+        if (match.Success)
+        {
+            gradientStart = gradientEnd = match.Groups[1].Value;
+        }
+    }
+
+    ConsoleService.WriteLineWarning("Đang thay đổi...");
+    foreach (var thumbnail in thumbnails)
+    {
+        var tmp = Path.Combine(Path.GetDirectoryName(thumbnail), "tmp_tmp.jpg");
+        try
+        {
+            File.Copy(thumbnail, tmp);
+            RenderService.ReplaceBackgroundWithGradient(tmp, thumbnail, gradientStart: gradientStart, gradientEnd: gradientEnd);
+        }
+        finally
+        {
+            if (File.Exists(tmp))
+            {
+                File.Delete(tmp);
+            }
+        }
+    }
+
+    ConsoleService.WriteLineSuccess("Thay đổi màu thumbnail thành công");
+
+    Console.WriteLine("Nhập số 0 để hoàn tác: ");
+    var isRollback = Console.ReadLine() == "0";
+    if (isRollback)
+    {
+        var originThumbnails = Directory.EnumerateFiles(Path.Combine(PathManager.InputLineOriginVideoPath, "thumbnail-bak"), "*.jpg").ToList();
+        foreach (var thumbnail in originThumbnails)
+        {
+            var des = Path.Combine(PathManager.InputLineOriginVideoPath, Path.GetFileName(thumbnail));
+            File.Copy(thumbnail, des, true);
+        }
+    }
+}
+
 //void Test()
 //{
-//    var videos = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.mp4").Select(x => Path.GetFileNameWithoutExtension(x)).ToList();
-//    var images = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath, "*.jpg").Select(x => Path.GetFileNameWithoutExtension(x)).ToList();
+//    var list = File.ReadAllLines("D:\\t.txt")
+//        .Select(x => x.Substring(42).Replace(" ", "").Replace("⧸", "").Replace("_", "").Replace("。", "").Replace("』", "").Replace("、", "").Substring(0, 6))
+//        .OrderBy(x => x).ToList();
+//    var list2 = File.ReadAllLines("D:\\t2.txt")
+//        .Select(x => x.Substring(42).Replace(" ", "").Replace("⧸", "").Replace("_", "").Replace("。", "").Replace("』", "").Replace("、", "").Substring(0, 6))
+//        .OrderBy(x => x).ToList();
 
-//    var videos2 = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath2, "*.mp4").Select(x => Path.GetFileNameWithoutExtension(x).Replace("   ", " ")).ToList();
-//    var images2 = Directory.EnumerateFiles(PathManager.InputLineOriginVideoPath2, "*.jpg").Select(x => Path.GetFileNameWithoutExtension(x).Replace("   ", " ")).ToList();
+//    var list3 = list2.Where(x => !list.Any(y => x == y)).ToList();
+//    var list4 = list.Where(x => !list2.Any(y => x == y)).ToList();
 
-//    for (int i = 0; i < 50; i++)
+//    var indexes = new List<int>();
+//    for (int i = 0; i < list.Count(); i++)
 //    {
-//        if (videos[i] != videos2[i])
+//        if (!list2.Any(x => x == list[i]))
 //        {
-//            Console.WriteLine(videos[i]);
-//            Console.WriteLine(videos2[i]);
-//            ConsoleService.WriteLineError("--------------------");
+//            indexes.Add(i);
 //        }
 //    }
+
+//    indexes = indexes.Distinct().ToList();
+
+//    var urls = new List<string>();
+//    for (int i = 0; i < indexes.Count; i++)
+//    {
+//        urls.Add(File.ReadAllLines("D:\\t.txt")[indexes[i]]);
+//    }
+//    File.WriteAllLines("D:\\t3.txt", urls);
 //}
-
-
-
-
-
-
-
-
 
 
 
