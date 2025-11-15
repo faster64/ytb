@@ -11,8 +11,6 @@ using Ytb.Services;
 
 await StartupService.InitializeAsync();
 
-// Test();
-
 var options = Enum.GetValues<OptionEnum>().OrderBy(x => (int)x).ToList();
 
 await Main();
@@ -159,7 +157,7 @@ async Task GetVideoUrlsFromChannelAsync()
 
     Console.Clear();
     var durationLines = await File.ReadAllLinesAsync(PathManager.ChannelsFileDurationPath);
-    var duration = int.Parse(durationLines.FirstOrDefault() ?? "20");
+    var duration = int.Parse(durationLines.FirstOrDefault() ?? "10");
 
     if (specialCharChoice == "1")
     {
@@ -261,11 +259,11 @@ async Task RenderVideosAsync(string type)
     }
 
     #region Validate resources
-    if (originVideos.Count < requiredVideoCount)
-    {
-        ConsoleService.WriteLineError($"Số kênh đang là {numberOfChannels}, mỗi kênh cần {videosPerChannel} videos => nên sẽ cần {requiredVideoCount} videos. Kiểm tra lại");
-        return;
-    }
+    //if (originVideos.Count < requiredVideoCount)
+    //{
+    //    ConsoleService.WriteLineError($"Số kênh đang là {numberOfChannels}, mỗi kênh cần {videosPerChannel} videos => nên sẽ cần {requiredVideoCount} videos. Kiểm tra lại");
+    //    return;
+    //}
     #endregion
 
     ConsoleService.WriteLineSuccess($"[{startTime.ToString("HH:mm:ss")}] Bắt đầu render, ngày hiện tại: {config.CurrentRenderDay}/{config.MaxRenderDays}");
@@ -542,37 +540,6 @@ void ChangeThumbnailColor()
         }
     }
 }
-
-//void Test()
-//{
-//    var list = File.ReadAllLines("D:\\t.txt")
-//        .Select(x => x.Substring(42).Replace(" ", "").Replace("⧸", "").Replace("_", "").Replace("。", "").Replace("』", "").Replace("、", "").Substring(0, 6))
-//        .OrderBy(x => x).ToList();
-//    var list2 = File.ReadAllLines("D:\\t2.txt")
-//        .Select(x => x.Substring(42).Replace(" ", "").Replace("⧸", "").Replace("_", "").Replace("。", "").Replace("』", "").Replace("、", "").Substring(0, 6))
-//        .OrderBy(x => x).ToList();
-
-//    var list3 = list2.Where(x => !list.Any(y => x == y)).ToList();
-//    var list4 = list.Where(x => !list2.Any(y => x == y)).ToList();
-
-//    var indexes = new List<int>();
-//    for (int i = 0; i < list.Count(); i++)
-//    {
-//        if (!list2.Any(x => x == list[i]))
-//        {
-//            indexes.Add(i);
-//        }
-//    }
-
-//    indexes = indexes.Distinct().ToList();
-
-//    var urls = new List<string>();
-//    for (int i = 0; i < indexes.Count; i++)
-//    {
-//        urls.Add(File.ReadAllLines("D:\\t.txt")[indexes[i]]);
-//    }
-//    File.WriteAllLines("D:\\t3.txt", urls);
-//}
 
 
 
